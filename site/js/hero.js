@@ -23,14 +23,23 @@
     return bsbVerses;
   }
 
-  const INTRA_COLOR = 'rgba(140,140,150,0.012)';
-  const INTER_COLOR = 'rgba(201,168,76,0.02)';
-  const ARC_WIDTH = 0.4;
+  const INTRA_COLOR = 'rgba(220,220,230,0.12)';
+  const INTER_COLOR = 'rgba(220,220,230,0.12)';
+  const ARC_WIDTH = 0.7;
 
+  // Light blue → dark blue → dark red → gold → bright gold (fast transition)
   const bookScale = [
-    [0.00, '#e6194b'], [0.12, '#f58231'], [0.24, '#ffe119'],
-    [0.36, '#bfef45'], [0.48, '#3cb44b'], [0.60, '#42d4f4'],
-    [0.72, '#4363d8'], [0.84, '#911eb4'], [1.00, '#f032e6'],
+    [0.00, '#68B8E8'],
+    [0.08, '#3A8AD0'],
+    [0.16, '#1A4A9A'],
+    [0.24, '#142868'],
+    [0.32, '#681818'],
+    [0.40, '#8B1A1A'],
+    [0.50, '#A85020'],
+    [0.60, '#C88A30'],
+    [0.75, '#D8B040'],
+    [0.88, '#E8C850'],
+    [1.00, '#F0D060'],
   ];
 
   function bookColor(num) {
@@ -125,7 +134,7 @@
   const hoverCfg = { bgcolor: '#0a0a14', bordercolor: '#2a2a3a',
     font: { family: 'Inter, sans-serif', size: 11, color: '#e8e4dc' } };
 
-  const OT_SIZE = 4, NT_SIZE = 5;
+  const OT_SIZE = 2.5, NT_SIZE = 3;
 
   const otTraceIdx = traces.length;
   traces.push({ type: 'scatter3d', mode: 'markers', x: ot.x, y: ot.y, z: ot.z,
@@ -159,13 +168,13 @@
     paper_bgcolor: '#000', plot_bgcolor: '#000',
     font: { family: 'Inter, system-ui, sans-serif', color: '#e8e4dc' },
     scene: { xaxis: axisCfg, yaxis: axisCfg, zaxis: axisCfg,
-      aspectmode: 'cube', bgcolor: '#000', dragmode: 'orbit',
-      camera: { eye: { x: 1.45, y: 1.45, z: 0.6 }, up: { x: 0, y: 0, z: 1 } } },
-    showlegend: false, margin: { l: 0, r: 0, t: 0, b: 0 }, autosize: true,
+      aspectmode: 'cube', bgcolor: '#000', dragmode: false,
+      camera: { eye: { x: 0.8, y: 0.8, z: 0.3 }, up: { x: 0, y: 0, z: 1 } } },
+    showlegend: false, margin: { l: 0, r: 0, t: 300, b: -180 }, autosize: true,
   };
 
   const plotEl = document.getElementById('sphere-plot');
-  Plotly.newPlot(plotEl, traces, layout, {
+  await Plotly.newPlot(plotEl, traces, layout, {
     responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false,
   });
 
@@ -203,7 +212,7 @@
   }
 
   // --- Double-click to smoothly zoom into a region ---
-  const DEFAULT_EYE = { x: 1.45, y: 1.45, z: 0.6 };
+  const DEFAULT_EYE = { x: 0.8, y: 0.8, z: 0.3 };
   let zoomAnimating = false;
 
   function animateCamera(fromEye, toEye, duration, onDone) {
@@ -300,7 +309,7 @@
 
     const sx = pt.x, sy = pt.y, sz = pt.z;
     const norm = Math.sqrt(sx * sx + sy * sy + sz * sz) || 1;
-    const d = 0.9;
+    const d = 1.25;
     const toEye = { x: sx / norm * d, y: sy / norm * d, z: sz / norm * d };
     let fromEye;
     try { fromEye = { ...plotEl._fullLayout.scene._scene.getCamera().eye }; }
@@ -316,7 +325,7 @@
     try { fromEye = { ...plotEl._fullLayout.scene._scene.getCamera().eye }; }
     catch (_) { fromEye = { ...DEFAULT_EYE }; }
     animateCamera(fromEye, DEFAULT_EYE, 700, () => {
-      rotDir = 1;
+      angle = Math.atan2(DEFAULT_EYE.y, DEFAULT_EYE.x);
       startRotation();
     });
   }
@@ -324,67 +333,11 @@
   plotEl.addEventListener('dblclick', function (e) {
     e.preventDefault();
     e.stopPropagation();
-    const target = lastHoveredPoint || lastClickedPoint;
-    if (target) enterViewer(target);
   });
 
   viewerExitBtn.addEventListener('click', exitViewer);
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && viewerMode) exitViewer();
-  });
-
-  // --- Book filter (integrated into legend items) ---
-  // Hide points by replacing coordinates with NaN to avoid corrupting the colorscale
-  const otOrigX = ot.x.slice(), otOrigY = ot.y.slice(), otOrigZ = ot.z.slice();
-  const ntOrigX = nt.x.slice(), ntOrigY = nt.y.slice(), ntOrigZ = nt.z.slice();
-
-  function applyBookFilter() {
-    const ox = otOrigX.map((v, i) => visibleBooks.has(ot.bookNum[i]) ? v : NaN);
-    const oy = otOrigY.map((v, i) => visibleBooks.has(ot.bookNum[i]) ? v : NaN);
-    const oz = otOrigZ.map((v, i) => visibleBooks.has(ot.bookNum[i]) ? v : NaN);
-    Plotly.restyle(plotEl, { x: [ox], y: [oy], z: [oz] }, [otTraceIdx]);
-
-    const nx = ntOrigX.map((v, i) => visibleBooks.has(nt.bookNum[i]) ? v : NaN);
-    const ny = ntOrigY.map((v, i) => visibleBooks.has(nt.bookNum[i]) ? v : NaN);
-    const nz = ntOrigZ.map((v, i) => visibleBooks.has(nt.bookNum[i]) ? v : NaN);
-    Plotly.restyle(plotEl, { x: [nx], y: [ny], z: [nz] }, [ntTraceIdx]);
-  }
-
-  // Build legend with inline toggles — each book item is clickable
-  const legOT = document.getElementById('legend-ot-list');
-  const legNT = document.getElementById('legend-nt-list');
-  const bookRows = {};
-
-  for (const bn of allBookNums) {
-    const col = bookTestament[bn] === 'OT' ? legOT : legNT;
-    const row = document.createElement('label');
-    row.className = 'legend-item';
-    row.innerHTML = `<input type="checkbox" data-book="${bn}" checked><span class="legend-swatch" style="background:${bookColor(bn)}"></span><span>${bookNames[bn]}</span>`;
-    col.appendChild(row);
-    bookRows[bn] = row;
-    row.querySelector('input').addEventListener('change', (e) => {
-      if (e.target.checked) { visibleBooks.add(bn); row.classList.remove('off'); }
-      else { visibleBooks.delete(bn); row.classList.add('off'); }
-      const test = bookTestament[bn];
-      const anyOn = allBookNums.filter(n => bookTestament[n] === test).some(n => visibleBooks.has(n));
-      document.querySelector(`.legend-col-toggle input[data-testament="${test}"]`).checked = anyOn;
-      applyBookFilter();
-    });
-  }
-
-  // Testament master toggles
-  document.querySelectorAll('.legend-col-toggle input[data-testament]').forEach(cb => {
-    cb.addEventListener('change', () => {
-      const test = cb.dataset.testament;
-      const checked = cb.checked;
-      for (const bn of allBookNums) {
-        if (bookTestament[bn] !== test) continue;
-        if (checked) visibleBooks.add(bn); else visibleBooks.delete(bn);
-        bookRows[bn].querySelector('input').checked = checked;
-        bookRows[bn].classList.toggle('off', !checked);
-      }
-      applyBookFilter();
-    });
   });
 
   // --- Default to 100 minimum votes ---
@@ -397,64 +350,28 @@
       return true;
     });
     Plotly.restyle(plotEl, { visible: visibility });
-
   }
 
   // Stats
   document.getElementById('stat-verses').textContent = stats.total_verses.toLocaleString();
   document.getElementById('stat-books').textContent = stats.books;
   document.getElementById('stat-refs').textContent = stats.arcs_in_dataset.toLocaleString();
-  document.getElementById('leg-verse-count').textContent = stats.total_verses.toLocaleString();
-  document.getElementById('leg-edge-count').textContent = stats.arcs_in_dataset.toLocaleString();
-  document.getElementById('leg-intra-count').textContent = (stats.dataset_intra || 0).toLocaleString();
-  document.getElementById('leg-inter-count').textContent = (stats.dataset_inter || 0).toLocaleString();
-
-  // --- Edge type toggles (intra / inter) ---
-  let showIntra = true, showInter = true;
-  const toggleIntraRow = document.getElementById('toggle-intra');
-  const toggleInterRow = document.getElementById('toggle-inter');
-
-  function applyEdgeFilter() {
-    const updates = {};
-    for (let i = arcTraceStart; i < arcTraceEnd; i++) {
-      const binIdx = Math.floor((i - arcTraceStart) / 2);
-      const isIntra = (i - arcTraceStart) % 2 === 0;
-      const meetsVotes = voteBins[binIdx].vote_min >= MIN_VOTES_DEFAULT;
-      const typeVisible = isIntra ? showIntra : showInter;
-      updates[i] = meetsVotes && typeVisible;
-    }
-    const visibility = traces.map((_, i) => updates[i] !== undefined ? updates[i] : undefined);
-    const indices = [];
-    const vals = [];
-    for (let i = arcTraceStart; i < arcTraceEnd; i++) {
-      indices.push(i);
-      vals.push(updates[i]);
-    }
-    Plotly.restyle(plotEl, { visible: vals }, indices);
-  }
-
-  toggleIntraRow.querySelector('input').addEventListener('change', function () {
-    showIntra = this.checked;
-    toggleIntraRow.classList.toggle('off', !showIntra);
-    applyEdgeFilter();
-  });
-
-  toggleInterRow.querySelector('input').addEventListener('change', function () {
-    showInter = this.checked;
-    toggleInterRow.classList.toggle('off', !showInter);
-    applyEdgeFilter();
-  });
+  const legVerseMeth = document.getElementById('leg-verse-count-meth');
+  const legEdgeMeth = document.getElementById('leg-edge-count-meth');
+  if (legVerseMeth) legVerseMeth.textContent = stats.total_verses.toLocaleString();
+  if (legEdgeMeth) legEdgeMeth.textContent = stats.arcs_in_dataset.toLocaleString();
+  const legIntra = document.getElementById('leg-intra-count');
+  const legInter = document.getElementById('leg-inter-count');
+  if (legIntra) legIntra.textContent = (stats.dataset_intra || 0).toLocaleString();
+  if (legInter) legInter.textContent = (stats.dataset_inter || 0).toLocaleString();
 
   // --- Semantic search (Bible-trained MPNet via ONNX in browser) ---
   const SEARCH_DIM = 768;
-  const searchInput = document.getElementById('verse-search');
-  const searchStatus = document.getElementById('search-status');
-  const searchClear = document.getElementById('search-clear');
-  const searchResults = document.getElementById('search-results');
-  const searchDesc = document.getElementById('search-results-desc');
-  const searchList = document.getElementById('search-results-list');
-  const chatEmpty = document.getElementById('chat-empty');
-  const chatEmptyText = document.getElementById('chat-empty-text');
+  const searchInput = document.getElementById('home-chat-input');
+  const searchStatus = document.getElementById('home-search-status');
+  const homeSearchResults = document.getElementById('home-search-results');
+  const searchDesc = document.getElementById('home-search-results-desc');
+  const searchList = document.getElementById('home-search-results-list');
   const highlightTraceIdx = traces.length;
 
   Plotly.addTraces(plotEl, [
@@ -486,107 +403,100 @@
     });
   }
 
-  // Search mode toggle
   let searchMode = 'verses';
-  const modeVersesBtn = document.getElementById('mode-verses');
-  const modePassagesBtn = document.getElementById('mode-passages');
 
-  function updateEmptyText() {
-    chatEmptyText.textContent = 'Enter any text to find the most relevant verses or passages in the Bible.';
+  const searchFilterBooks = new Set(allBookNums);
+
+  // --- Book filter dropdown ---
+  const filterBtn = document.getElementById('search-filter-btn');
+  const filterLabel = document.getElementById('search-filter-label');
+  const filterDropdown = document.getElementById('search-filter-dropdown');
+  const filterBackdrop = document.getElementById('search-filter-backdrop');
+
+  function openFilterPanel() {
+    filterDropdown.classList.add('open');
+    filterBackdrop.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeFilterPanel() {
+    filterDropdown.classList.remove('open');
+    filterBackdrop.classList.remove('open');
+    document.body.style.overflow = '';
   }
 
-  modeVersesBtn.addEventListener('click', () => {
-    searchMode = 'verses';
-    modeVersesBtn.classList.add('active');
-    modePassagesBtn.classList.remove('active');
-    searchInput.placeholder = 'Enter any text...';
-    updateEmptyText();
-    if (searchInput.value.trim().length >= 3) doSearch();
+  filterBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (filterDropdown.classList.contains('open')) closeFilterPanel();
+    else openFilterPanel();
   });
-  modePassagesBtn.addEventListener('click', () => {
-    searchMode = 'passages';
-    modePassagesBtn.classList.add('active');
-    modeVersesBtn.classList.remove('active');
-    searchInput.placeholder = 'Enter any text...';
-    updateEmptyText();
-    if (searchInput.value.trim().length >= 3) doSearch();
+  filterBackdrop.addEventListener('click', closeFilterPanel);
+  document.getElementById('sfd-done').addEventListener('click', closeFilterPanel);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && filterDropdown.classList.contains('open')) closeFilterPanel();
   });
 
-  // --- Collapsible book filter for search ---
-  const searchFilterBooks = new Set(allBookNums);
-  const sfFilter = document.getElementById('search-filter');
-  const sfHeader = document.getElementById('sf-header');
-  const sfBadge = document.getElementById('sf-badge');
-
-  sfHeader.addEventListener('click', () => { sfFilter.classList.toggle('open'); });
-
-  function updateFilterBadge() {
+  function updateFilterLabel() {
     const n = searchFilterBooks.size;
     const total = allBookNums.length;
-    sfBadge.textContent = n < total ? n + ' / ' + total : '';
+    if (n === total) { filterLabel.textContent = 'All books'; filterBtn.classList.remove('filtered'); }
+    else if (n === 0) { filterLabel.textContent = 'None'; filterBtn.classList.add('filtered'); }
+    else { filterLabel.textContent = n + ' / ' + total + ' books'; filterBtn.classList.add('filtered'); }
   }
 
-  function syncTestamentToggle(testament) {
+  function syncTestamentTrack(testament) {
     const books = allBookNums.filter(bn => bookTestament[bn] === testament);
     const anyOn = books.some(bn => searchFilterBooks.has(bn));
-    const el = document.querySelector(`.sf-testament-header[data-testament="${testament}"] .sf-toggle-track`);
-    const cb = el.querySelector('input');
-    el.classList.toggle('on', anyOn);
-    cb.checked = anyOn;
-  }
-
-  function onFilterChange() {
-    updateFilterBadge();
-    updateEmptyText();
-    if (searchInput.value.trim().length >= 3) doSearch();
+    const allOn = books.every(bn => searchFilterBooks.has(bn));
+    const toggle = document.getElementById(testament === 'OT' ? 'sfd-ot-toggle' : 'sfd-nt-toggle');
+    const track = toggle.querySelector('.sfd-track');
+    const cb = track.querySelector('input');
+    track.classList.toggle('on', anyOn);
+    track.classList.toggle('partial', anyOn && !allOn);
+    cb.checked = allOn;
+    cb.indeterminate = anyOn && !allOn;
   }
 
   ['OT', 'NT'].forEach(testament => {
-    const listEl = document.getElementById(testament === 'OT' ? 'sf-ot-list' : 'sf-nt-list');
-    const secEl = document.getElementById(testament === 'OT' ? 'sf-ot' : 'sf-nt');
-    const headerEl = secEl.querySelector('.sf-testament-header');
-    const trackEl = headerEl.querySelector('.sf-toggle-track');
-    const masterCb = trackEl.querySelector('input');
-    trackEl.classList.add('on');
+    const booksEl = document.getElementById(testament === 'OT' ? 'sfd-ot-books' : 'sfd-nt-books');
+    const toggle = document.getElementById(testament === 'OT' ? 'sfd-ot-toggle' : 'sfd-nt-toggle');
+    const track = toggle.querySelector('.sfd-track');
+    const masterCb = track.querySelector('input');
 
-    headerEl.addEventListener('click', (e) => {
-      if (trackEl.contains(e.target)) return;
-      secEl.classList.toggle('open');
-    });
-
-    trackEl.addEventListener('click', (e) => {
+    toggle.addEventListener('click', (e) => {
+      e.preventDefault();
       e.stopPropagation();
-      const nowOn = !masterCb.checked;
+      const isPartial = masterCb.indeterminate;
+      const nowOn = isPartial ? true : !masterCb.checked;
       masterCb.checked = nowOn;
-      trackEl.classList.toggle('on', nowOn);
-      allBookNums.filter(bn => bookTestament[bn] === testament).forEach(bn => {
-        if (nowOn) searchFilterBooks.add(bn); else searchFilterBooks.delete(bn);
-      });
-      listEl.querySelectorAll('.sf-book').forEach(row => {
-        row.classList.toggle('off', !nowOn);
-        row.querySelector('.sf-toggle-track').classList.toggle('on', nowOn);
-      });
-      onFilterChange();
+      masterCb.indeterminate = false;
+      track.classList.remove('partial');
+      track.classList.toggle('on', nowOn);
+      const books = allBookNums.filter(bn => bookTestament[bn] === testament);
+      books.forEach(bn => { if (nowOn) searchFilterBooks.add(bn); else searchFilterBooks.delete(bn); });
+      booksEl.querySelectorAll('.sfd-book').forEach(row => row.classList.toggle('off', !nowOn));
+      updateFilterLabel();
+      if (searchInput.value.trim().length >= 3) doSearch();
     });
+
+    booksEl.addEventListener('click', (e) => { e.stopPropagation(); });
 
     allBookNums.filter(bn => bookTestament[bn] === testament).forEach(bn => {
       const row = document.createElement('div');
-      row.className = 'sf-book';
-      row.innerHTML = `<span>${bookNames[bn]}</span><span class="sf-toggle-track on"></span>`;
-      const track = row.querySelector('.sf-toggle-track');
+      row.className = 'sfd-book';
+      row.innerHTML = `<span class="sfd-book-swatch" style="background:${bookColor(bn)}"></span><span>${bookNames[bn]}</span>`;
       row.addEventListener('click', () => {
         const wasOn = searchFilterBooks.has(bn);
         if (wasOn) searchFilterBooks.delete(bn); else searchFilterBooks.add(bn);
         row.classList.toggle('off', wasOn);
-        track.classList.toggle('on', !wasOn);
-        syncTestamentToggle(testament);
-        onFilterChange();
+        syncTestamentTrack(testament);
+        updateFilterLabel();
+        if (searchInput.value.trim().length >= 3) doSearch();
       });
-      listEl.appendChild(row);
+      booksEl.appendChild(row);
     });
   });
 
-  updateFilterBadge();
+  updateFilterLabel();
 
   // Embeddings (uint8-quantised, loaded lazily)
   let verseEmbU8 = null;
@@ -600,7 +510,6 @@
     if (searchReady || searchLoading) return;
     searchLoading = true;
     searchStatus.innerHTML = '<span class="search-dot"></span>Loading 109M-parameter Bible transformer…';
-    searchStatus.style.display = 'block';
 
     try {
       const [embBuf, passEmbBuf, passJson, bsbJson, transformers] = await Promise.all([
@@ -623,7 +532,7 @@
         quantized: true,
       });
       searchReady = true;
-      searchStatus.style.display = 'none';
+      searchStatus.innerHTML = '';
     } catch (err) {
       console.error('Search model load failed:', err);
       searchStatus.innerHTML = 'Model failed to load — check console';
@@ -654,12 +563,7 @@
     return indices.slice(0, 200).map(i => ({ idx: i, score: scores[i] }));
   }
 
-  const searchSend = document.getElementById('search-send');
-  searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); doSearch(); } });
-  searchInput.addEventListener('input', () => { searchSend.classList.toggle('ready', searchInput.value.trim().length > 0); });
-  searchInput.addEventListener('focus', () => { loadSearchAssets(); });
-  searchSend.addEventListener('click', () => { doSearch(); });
-  searchClear.addEventListener('click', clearSearch);
+  // Search event listeners are wired via the unified home input (see below)
 
   async function doSearch() {
     const q = searchInput.value.trim();
@@ -670,12 +574,10 @@
     }
 
     searchStatus.innerHTML = '<span class="search-dot"></span>Encoding query\u2026';
-    searchStatus.style.display = 'block';
     await new Promise(r => setTimeout(r, 0));
 
     const queryEmb = await embedQuery(q);
-    searchStatus.style.display = 'none';
-    searchClear.style.display = 'block';
+    searchStatus.innerHTML = '';
 
     if (searchMode === 'verses') {
       await doVerseResults(queryEmb);
@@ -697,13 +599,9 @@
     for (const m of shown) { hx.push(m.p.sx); hy.push(m.p.sy); hz.push(m.p.sz); ht.push(`<b>${m.p.ref}</b><br><i>${wrapText(m.p.text, 60)}</i>`); }
     Plotly.restyle(plotEl, { x: [hx], y: [hy], z: [hz], text: [ht] }, [highlightTraceIdx]);
 
+    homeSearchResults.style.display = 'block';
     if (shown.length > 0) {
-      chatEmpty.style.display = 'none';
-      const filterActive = searchFilterBooks.size < allBookNums.length;
-      const scopeText = filterActive
-        ? searchFilterBooks.size + ' book' + (searchFilterBooks.size !== 1 ? 's' : '')
-        : 'all 31,102 verse embeddings';
-      searchDesc.innerHTML = 'Ranked by <b style="color:rgba(201,168,76,0.4);">cosine similarity</b> across ' + scopeText + '.';
+      searchDesc.innerHTML = 'Ranked by <b style="color:rgba(201,168,76,0.4);">cosine similarity</b> across all 31,102 verse embeddings.';
       searchList.innerHTML = shown.map((m, i) => {
         const pct = Math.max(0, (m.score / maxScore * 100)).toFixed(0);
         const bsbText = (bsb[m.idx] || '').replace(/"/g, '&quot;');
@@ -714,7 +612,7 @@
       }).join('');
       bindResultClicks();
       aimCamera(hx, hy, hz);
-    } else { chatEmpty.style.display = 'block'; searchList.innerHTML = ''; searchDesc.innerHTML = ''; }
+    } else { searchList.innerHTML = '<div style="text-align:center;color:rgba(232,228,220,0.4);font-size:0.72rem;padding:20px;">No results found.</div>'; searchDesc.innerHTML = ''; }
   }
 
   function doPassageResults(queryEmb) {
@@ -733,13 +631,9 @@
     }
     Plotly.restyle(plotEl, { x: [hx], y: [hy], z: [hz], text: [ht] }, [highlightTraceIdx]);
 
+    homeSearchResults.style.display = 'block';
     if (shown.length > 0) {
-      chatEmpty.style.display = 'none';
-      const filterActive = searchFilterBooks.size < allBookNums.length;
-      const scopeText = filterActive
-        ? searchFilterBooks.size + ' book' + (searchFilterBooks.size !== 1 ? 's' : '')
-        : passageData.length.toLocaleString() + ' passages';
-      searchDesc.innerHTML = 'Ranked by <b style="color:rgba(201,168,76,0.4);">cosine similarity</b> across ' + scopeText + '.';
+      searchDesc.innerHTML = 'Ranked by <b style="color:rgba(201,168,76,0.4);">cosine similarity</b> across ' + passageData.length.toLocaleString() + ' passages.';
       searchList.innerHTML = shown.map((m, i) => {
         const psg = m.psg;
         const pct = Math.max(0, (m.score / maxScore * 100)).toFixed(0);
@@ -756,7 +650,7 @@
       }).join('');
       bindResultClicks();
       aimCamera(hx, hy, hz);
-    } else { chatEmpty.style.display = 'block'; searchList.innerHTML = ''; searchDesc.innerHTML = ''; }
+    } else { searchList.innerHTML = '<div style="text-align:center;color:rgba(232,228,220,0.4);font-size:0.72rem;padding:20px;">No results found.</div>'; searchDesc.innerHTML = ''; }
   }
 
   function bindResultClicks() {
@@ -769,11 +663,10 @@
     if (!hx.length) return;
     const cx = hx.reduce((a, b) => a + b, 0) / hx.length;
     const cy = hy.reduce((a, b) => a + b, 0) / hy.length;
-    const cz = hz.reduce((a, b) => a + b, 0) / hz.length;
-    const dist = Math.sqrt(cx*cx + cy*cy + cz*cz) || 1, s = 2.0 / dist;
+    const newAngle = Math.atan2(cy, cx);
     spinning = false;
-    Plotly.relayout(plotEl, { 'scene.camera.eye': { x: cx*s, y: cy*s, z: cz*s } });
-    radius = Math.sqrt((cx*s)**2 + (cy*s)**2); camZ = cz*s; angle = Math.atan2(cy*s, cx*s);
+    angle = newAngle;
+    setCameraAtAngle(angle);
   }
 
   let sphereFaded = false;
@@ -801,9 +694,8 @@
   }
 
   function clearSearch() {
-    searchInput.value = ''; searchClear.style.display = 'none';
-    searchStatus.style.display = 'none';
-    chatEmpty.style.display = 'block';
+    searchStatus.innerHTML = '';
+    homeSearchResults.style.display = 'none';
     searchList.innerHTML = '';
     searchDesc.innerHTML = '';
     Plotly.restyle(plotEl, { x: [[]], y: [[]], z: [[]], text: [[]] }, [highlightTraceIdx]);
@@ -906,7 +798,7 @@
           it.classList.toggle('active', it.dataset.value === String(v));
         });
         const active = menu.querySelector('.cd-item.active');
-        if (active) trigger.querySelector('span').textContent = active.dataset.label || active.textContent.trim();
+        if (active) trigger.querySelector('span').textContent = active.dataset.triggerLabel || active.dataset.label || active.textContent.trim();
       },
       setItems(items, groupBy) {
         const listContainer = menu.querySelector('#cd-book-list') || menu;
@@ -927,7 +819,8 @@
           });
         } else {
           items.forEach(it => {
-            html += `<div class="cd-item" data-value="${it.value}" data-label="${it.label}"><span class="cd-check"><svg viewBox="0 0 12 12" fill="none" stroke="rgba(201,168,76,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6l3 3 5-5"/></svg></span>${it.label}</div>`;
+            const tl = it.triggerLabel ? ` data-trigger-label="${it.triggerLabel}"` : '';
+            html += `<div class="cd-item" data-value="${it.value}" data-label="${it.label}"${tl}><span class="cd-check"><svg viewBox="0 0 12 12" fill="none" stroke="rgba(201,168,76,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6l3 3 5-5"/></svg></span>${it.label}</div>`;
           });
         }
         listContainer.innerHTML = html;
@@ -1055,6 +948,14 @@
           `<span class="reader-verse-text">${text}</span></span> `;
       }
     }
+
+    const isVisible = readerOverlay.classList.contains('visible');
+    if (isVisible && readerInner.innerHTML) {
+      readerInner.style.transition = 'opacity 0.25s ease';
+      readerInner.style.opacity = '0';
+      await new Promise(r => setTimeout(r, 250));
+    }
+
     readerInner.innerHTML = html;
 
     if (scrollToRef && scrollTargetId) {
@@ -1075,6 +976,13 @@
       if (chapters.length) readerChapterSelect.value = String(chapters[0]);
       updateNavButtons(chapters);
     }
+
+    if (isVisible) {
+      requestAnimationFrame(() => {
+        readerInner.style.opacity = '1';
+        setTimeout(() => { readerInner.style.transition = ''; }, 300);
+      });
+    }
   }
 
   function updateNavButtons(chapters) {
@@ -1083,16 +991,53 @@
     document.getElementById('reader-next').disabled = cur >= chapters[chapters.length - 1];
   }
 
+  const readerTransition = document.getElementById('reader-transition');
+  let readerTransitionActive = false;
+
   function openReader(bookNum, highlightRefs) {
     readerHighlightRefs = new Set(highlightRefs);
     modalOverlay.classList.remove('open');
-    readerOverlay.classList.add('open');
+
     const scrollRef = highlightRefs.length > 0 ? highlightRefs[0] : null;
-    renderBook(bookNum, scrollRef);
+
+    if (readerTransitionActive) {
+      readerOverlay.classList.add('open', 'visible');
+      renderBook(bookNum, scrollRef);
+      return;
+    }
+    readerTransitionActive = true;
+
+    readerTransition.classList.remove('phase-1', 'phase-2');
+    readerTransition.classList.add('active');
+
+    requestAnimationFrame(() => {
+      readerTransition.classList.add('phase-1');
+    });
+
+    // Prepare reader underneath while Bible is showing
+    setTimeout(() => {
+      renderBook(bookNum, scrollRef);
+      readerOverlay.classList.add('open');
+      // Trigger fade-in on next frame so CSS transition fires
+      requestAnimationFrame(() => {
+        readerOverlay.classList.add('visible');
+      });
+    }, 1400);
+
+    // Fade out the Bible transition overlay simultaneously
+    setTimeout(() => {
+      readerTransition.classList.add('phase-2');
+    }, 2000);
+
+    // Cleanup after both fades complete
+    setTimeout(() => {
+      readerTransition.classList.remove('active', 'phase-1', 'phase-2');
+      readerTransitionActive = false;
+    }, 3300);
   }
 
   document.getElementById('reader-close').addEventListener('click', () => {
-    readerOverlay.classList.remove('open');
+    readerOverlay.classList.remove('open', 'visible');
   });
 
   document.getElementById('reader-prev').addEventListener('click', () => {
@@ -1158,9 +1103,7 @@
     if (currentModalBookNum) openReader(currentModalBookNum, currentModalRefs);
   });
 
-  document.getElementById('reader-cta-btn').addEventListener('click', () => {
-    openReader(1, []);
-  });
+  // (reader-cta-btn removed; functionality now in home-chat suggestion cards)
 
   // --- Reader Chat (AI Q&A) ---
   const chatMsgContainer = document.getElementById('reader-chat-messages');
@@ -1176,35 +1119,35 @@
   let llmCurrentModel = null;
 
   const LLM_MODELS = [
-    { id: 'Phi-3.5-mini-instruct-q4f16_1-MLC', label: 'Phi 3.5 Mini', vram: '3.7 GB' },
-    { id: 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC', label: 'Qwen 2.5 1.5B', vram: '1.6 GB' },
-    { id: 'Llama-3.2-3B-Instruct-q4f16_1-MLC', label: 'Llama 3.2 3B', vram: '2.3 GB' },
-    { id: 'Llama-3.2-1B-Instruct-q4f16_1-MLC', label: 'Llama 3.2 1B', vram: '0.9 GB' },
-    { id: 'Qwen2.5-3B-Instruct-q4f16_1-MLC', label: 'Qwen 2.5 3B', vram: '2.5 GB' },
-    { id: 'SmolLM2-1.7B-Instruct-q4f16_1-MLC', label: 'SmolLM2 1.7B', vram: '1.8 GB' },
+    { id: 'Llama-3.2-1B-Instruct-q4f16_1-MLC', label: 'Logos Light', menu: 'Light', vram: '0.9 GB' },
+    { id: 'gemma-2-2b-it-q4f16_1-MLC', label: 'Logos Standard', menu: 'Standard', vram: '2.0 GB' },
+    { id: 'Phi-3.5-mini-instruct-q4f16_1-MLC', label: 'Logos Max', menu: 'Max', vram: '3.7 GB' },
   ];
 
   const chatModelSelect = setupDropdown('cd-model', 'cd-model-trigger', 'cd-model-menu', async (val) => {
     localStorage.setItem('bv_llm_model', val);
+    try { homeChatModelSelect.value = val; } catch (_) {}
     if (!localStorage.getItem('bv_openai_key') && navigator.gpu && llmCurrentModel !== val) {
       chatHistory = [];
       renderChat();
       await showModelLoading(val);
     }
   });
-  chatModelSelect.setItems(LLM_MODELS.map(m => ({ value: m.id, label: m.label })));
+  chatModelSelect.setItems(LLM_MODELS.map(m => ({ value: m.id, label: m.menu, triggerLabel: m.label })));
   const storedModel = localStorage.getItem('bv_llm_model');
   if (storedModel && LLM_MODELS.find(m => m.id === storedModel)) {
     chatModelSelect.value = storedModel;
   } else {
-    chatModelSelect.value = LLM_MODELS[0].id;
+    chatModelSelect.value = LLM_MODELS[1].id;
   }
 
   function getSelectedModel() { return chatModelSelect.value; }
 
-  // Pre-load default model in background
+  // Pre-load default model in background (delay until splash finishes)
   if (navigator.gpu && !localStorage.getItem('bv_openai_key')) {
-    initLLM(getSelectedModel(), function () {}).catch(function () {});
+    setTimeout(function () {
+      initLLM(getSelectedModel(), function () {}).catch(function () {});
+    }, 4500);
   }
 
   const savedKey = localStorage.getItem('bv_openai_key');
@@ -1332,9 +1275,14 @@
 
     const apiKey = localStorage.getItem('bv_openai_key');
 
+    const readerOnDelta = (delta) => {
+      chatHistory[chatHistory.length - 1].content += delta;
+      updateLastBubble();
+    };
+
     try {
       if (apiKey) {
-        await streamOpenAI(buildMsgs(), apiKey);
+        await streamOpenAI(buildMsgs(), apiKey, readerOnDelta);
       } else {
         if (!navigator.gpu) {
           chatHistory[chatHistory.length - 1].content =
@@ -1368,7 +1316,7 @@
     chatStreaming = false;
   }
 
-  async function streamOpenAI(msgs, key) {
+  async function streamOpenAI(msgs, key, onDelta) {
     const resp = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
@@ -1390,10 +1338,7 @@
         if (d === '[DONE]') return;
         try {
           const delta = JSON.parse(d).choices[0].delta.content || '';
-          if (delta) {
-            chatHistory[chatHistory.length - 1].content += delta;
-            updateLastBubble();
-          }
+          if (delta) onDelta(delta);
         } catch (_) {}
       }
     }
@@ -1444,99 +1389,316 @@
     modalOverlay.classList.add('open');
   }
 
-  // --- Auto-rotation with drag continuation ---
+  // --- Lateral-only auto-rotation + lateral-only drag ---
   let spinning = true;
-  let angle = Math.atan2(1.45, 1.45);
-  let radius = Math.sqrt(1.45 * 1.45 + 1.45 * 1.45);
-  let camZ = 0.6;
+  let angle = Math.atan2(0.8, 0.8);
+  const CAM_RADIUS = Math.sqrt(0.8 * 0.8 + 0.8 * 0.8);
+  const CAM_Z = 0.3;
   let rotateRAF = null;
-  let rotDir = 1;
-  const ROT_SPEED = 0.001;
-  const DRAG_THRESHOLD = 8;
+  const ROT_SPEED = 0.002;
+  let isDragging = false;
+  let dragStartX = 0;
+  let dragStartAngle = 0;
 
-  function syncFromCamera() {
-    try {
-      const eye = plotEl._fullLayout.scene._scene.getCamera().eye;
-      radius = Math.sqrt(eye.x * eye.x + eye.y * eye.y);
-      camZ = eye.z;
-      angle = Math.atan2(eye.y, eye.x);
-    } catch (_) {}
-  }
-
-  function setCamera(eye) {
+  function setCameraAtAngle(a) {
+    const eye = { x: CAM_RADIUS * Math.cos(a), y: CAM_RADIUS * Math.sin(a), z: CAM_Z };
     try {
       const scene = plotEl._fullLayout.scene._scene;
-      scene.setCamera({ eye: eye, up: { x: 0, y: 0, z: 1 } });
-      scene.glplot.redraw();
-    } catch (_) {
-      Plotly.relayout(plotEl, { 'scene.camera.eye': eye });
-    }
+      if (scene && scene.glplot) {
+        const cam = scene.glplot.camera;
+        cam.lookAt(
+          [eye.x, eye.y, eye.z],
+          [0, 0, 0],
+          [0, 0, 1]
+        );
+        scene.glplot.redraw();
+      }
+    } catch (_) {}
   }
 
   function rotate() {
     if (!spinning) { rotateRAF = null; return; }
-    angle += ROT_SPEED * rotDir;
-    setCamera({ x: radius * Math.cos(angle), y: radius * Math.sin(angle), z: camZ });
+    angle += ROT_SPEED;
+    setCameraAtAngle(angle);
     rotateRAF = requestAnimationFrame(rotate);
   }
 
   function startRotation() {
-    if (rotateRAF) cancelAnimationFrame(rotateRAF);
-    rotateRAF = null;
     spinning = true;
-    rotate();
+    if (!rotateRAF) rotate();
   }
 
-  let isDragging = false;
-  let dragStartX = 0, dragStartY = 0;
-  let dragStartAngle = 0;
-
-  plotEl.addEventListener('mousedown', (e) => {
+  function stopRotation() {
     spinning = false;
     if (rotateRAF) { cancelAnimationFrame(rotateRAF); rotateRAF = null; }
+  }
+
+  plotEl.addEventListener('mousedown', (e) => {
+    if (e.target.closest('.sphere-panel, .left-panel, .home-chat')) return;
+    stopRotation();
     isDragging = true;
     dragStartX = e.clientX;
-    dragStartY = e.clientY;
-    syncFromCamera();
     dragStartAngle = angle;
+    e.preventDefault();
   });
 
-  window.addEventListener('mouseup', (e) => {
+  window.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    const dx = e.clientX - dragStartX;
+    angle = dragStartAngle - dx * 0.005;
+    setCameraAtAngle(angle);
+  });
+
+  window.addEventListener('mouseup', () => {
     if (!isDragging) return;
     isDragging = false;
     if (viewerMode || zoomAnimating) return;
-
-    const dx = e.clientX - dragStartX;
-    const dy = e.clientY - dragStartY;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-
-    if (dist < DRAG_THRESHOLD) return;
-
-    syncFromCamera();
-    let da = angle - dragStartAngle;
-    if (da > Math.PI) da -= 2 * Math.PI;
-    if (da < -Math.PI) da += 2 * Math.PI;
-    if (da !== 0) rotDir = da > 0 ? 1 : -1;
-
     startRotation();
   });
 
-  startRotation();
-
-  // Align CTA bottom with panel bottoms
-  function alignCTA() {
-    const edgePanel = document.querySelector('.sphere-edge-panel');
-    const cta = document.getElementById('reader-cta');
-    const section = document.querySelector('.sphere-section');
-    if (!edgePanel || !cta || !section) return;
-    const sectionRect = section.getBoundingClientRect();
-    const edgeRect = edgePanel.getBoundingClientRect();
-    const bottomOffset = sectionRect.bottom - edgeRect.bottom;
-    cta.style.bottom = bottomOffset + 'px';
+  // Wait for Plotly GL scene to be fully ready, then start rotation
+  let rotationStarted = false;
+  function isSceneReady() {
+    try { return !!(plotEl._fullLayout.scene._scene.glplot); }
+    catch (_) { return false; }
   }
-  window.addEventListener('load', alignCTA);
-  window.addEventListener('resize', alignCTA);
-  setTimeout(alignCTA, 1500);
+  function tryStartRotation() {
+    if (rotationStarted) return;
+    if (isSceneReady()) {
+      rotationStarted = true;
+      startRotation();
+    } else {
+      requestAnimationFrame(tryStartRotation);
+    }
+  }
+  tryStartRotation();
+  plotEl.on('plotly_afterplot', tryStartRotation);
+
+
+  // --- Homepage: unified Search | Chat interface ---
+  let homeMode = 'search';
+  const homeModeSearchBtn = document.getElementById('home-mode-search');
+  const homeModeChatBtn = document.getElementById('home-mode-chat');
+  const homeModelWrap = document.getElementById('home-chat-model-wrap');
+  const homeChatInput = document.getElementById('home-chat-input');
+  const homeChatSendBtn = document.getElementById('home-chat-send');
+  const homeChatMessages = document.getElementById('home-chat-messages');
+  const homeChatWelcome = document.getElementById('home-chat-welcome');
+  let homeChatHistory = [];
+  let homeChatStreaming = false;
+
+  const homeChatModelSelect = setupDropdown('cd-home-model', 'cd-home-model-trigger', 'cd-home-model-menu', async (val) => {
+    localStorage.setItem('bv_llm_model', val);
+    chatModelSelect.value = val;
+    if (!localStorage.getItem('bv_openai_key') && navigator.gpu && llmCurrentModel !== val) {
+      homeChatHistory = [];
+      renderHomeChat();
+      await showHomeModelLoading(val);
+    }
+  });
+  homeChatModelSelect.setItems(LLM_MODELS.map(m => ({ value: m.id, label: m.menu, triggerLabel: m.label })));
+  homeChatModelSelect.value = getSelectedModel();
+
+  const homeModelLoadingEl = document.getElementById('home-chat-model-loading');
+  const homeModelLoadingText = document.getElementById('hcml-text');
+  const homeModelLoadingBar = document.getElementById('hcml-bar');
+
+  async function showHomeModelLoading(modelId) {
+    const label = LLM_MODELS.find(m => m.id === modelId)?.label || modelId;
+    homeModelLoadingText.textContent = label;
+    homeModelLoadingBar.style.width = '0%';
+    homeModelLoadingEl.classList.add('active');
+    try {
+      await initLLM(modelId, function (report) {
+        const pct = Math.round((report.progress || 0) * 100);
+        homeModelLoadingBar.style.width = pct + '%';
+        homeModelLoadingText.textContent = pct >= 100 ? 'Starting ' + label : label;
+      });
+    } finally {
+      homeModelLoadingEl.classList.remove('active');
+    }
+  }
+
+  function buildHomeMsgs() {
+    const sys = 'You are a knowledgeable Bible study assistant. Answer questions about the Bible with accuracy, citing relevant verses and providing historical and theological context when helpful. Be concise and clear.';
+    const msgs = [{ role: 'system', content: sys }];
+    for (const m of homeChatHistory) {
+      if (m.content) msgs.push({ role: m.role, content: m.content });
+    }
+    return msgs;
+  }
+
+  function renderHomeChat() {
+    const isChatting = homeChatContainer && homeChatContainer.classList.contains('chatting');
+    if (homeChatHistory.length === 0) {
+      if (!isChatting) homeChatMessages.style.display = 'none';
+      homeChatWelcome.style.display = isChatting ? 'none' : '';
+      homeChatMessages.innerHTML = '';
+      return;
+    }
+    homeChatWelcome.style.display = 'none';
+    homeChatMessages.style.display = '';
+    homeChatMessages.innerHTML = homeChatHistory.map(m => {
+      const cls = m.role === 'user' ? 'chat-msg-user' : 'chat-msg-assistant';
+      const label = m.role === 'user' ? 'You' : 'BibleVerse';
+      return '<div class="chat-msg ' + cls + '">' +
+        '<div class="chat-msg-label">' + label + '</div>' +
+        '<div class="chat-bubble">' + formatChat(m.content) + '</div></div>';
+    }).join('');
+    homeChatMessages.scrollTop = homeChatMessages.scrollHeight;
+  }
+
+  function updateHomeLastBubble() {
+    const last = homeChatMessages.querySelector('.chat-msg:last-child .chat-bubble');
+    if (last) {
+      last.innerHTML = formatChat(homeChatHistory[homeChatHistory.length - 1].content);
+      homeChatMessages.scrollTop = homeChatMessages.scrollHeight;
+    }
+  }
+
+  const homeChatContainer = document.getElementById('home-chat');
+
+  function enterChatMode() {
+    if (homeChatContainer.classList.contains('chatting')) return;
+    homeChatContainer.classList.add('chatting');
+    document.body.style.overflow = 'hidden';
+    homeChatInput.placeholder = 'Ask anything about the Bible...';
+  }
+
+  function exitChatMode() {
+    homeChatContainer.classList.remove('chatting');
+    document.body.style.overflow = '';
+    homeChatHistory = [];
+    renderHomeChat();
+    switchHomeMode('chat');
+  }
+
+  document.getElementById('home-chat-back').addEventListener('click', exitChatMode);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && homeChatContainer.classList.contains('chatting')) exitChatMode();
+  });
+
+  async function sendHomeChat() {
+    const text = homeChatInput.value.trim();
+    if (!text || homeChatStreaming) return;
+    homeChatInput.value = '';
+    homeChatSendBtn.classList.remove('ready');
+    enterChatMode();
+
+    homeChatHistory.push({ role: 'user', content: text });
+    homeChatHistory.push({ role: 'assistant', content: '' });
+    renderHomeChat();
+    homeChatStreaming = true;
+
+    const homeOnDelta = (delta) => {
+      homeChatHistory[homeChatHistory.length - 1].content += delta;
+      updateHomeLastBubble();
+    };
+
+    const apiKey = localStorage.getItem('bv_openai_key');
+
+    try {
+      if (apiKey) {
+        await streamOpenAI(buildHomeMsgs(), apiKey, homeOnDelta);
+      } else {
+        if (!navigator.gpu) {
+          homeChatHistory[homeChatHistory.length - 1].content =
+            'Your browser does not support WebGPU, which is required for in-browser AI.\n\n' +
+            'Use Chrome or Edge for the best experience, or add an OpenAI API key in the reader settings.';
+          renderHomeChat();
+          homeChatStreaming = false;
+          return;
+        }
+        const selectedModel = getSelectedModel();
+        if (!llmEngine || llmCurrentModel !== selectedModel) {
+          await showHomeModelLoading(selectedModel);
+        }
+        const resp = await llmEngine.chat.completions.create({
+          messages: buildHomeMsgs(), stream: true, temperature: 0.7, max_tokens: 1024,
+        });
+        for await (const chunk of resp) {
+          const delta = chunk.choices[0]?.delta?.content || '';
+          if (delta) homeOnDelta(delta);
+        }
+      }
+    } catch (err) {
+      if (!homeChatHistory[homeChatHistory.length - 1].content) {
+        homeChatHistory[homeChatHistory.length - 1].content = 'Something went wrong. Please try again.';
+      }
+      renderHomeChat();
+    }
+    homeChatStreaming = false;
+  }
+
+  const homeSearchFooter = document.getElementById('home-search-footer');
+  const homeChatFooter = document.getElementById('home-chat-footer');
+  const homeDisclaimer = document.getElementById('home-chat-disclaimer');
+  const homeModeVersesBtn = document.getElementById('home-mode-verses');
+  const homeModePassagesBtn = document.getElementById('home-mode-passages');
+
+  homeModeVersesBtn.addEventListener('click', () => {
+    searchMode = 'verses';
+    homeModeVersesBtn.classList.add('active');
+    homeModePassagesBtn.classList.remove('active');
+    if (searchInput.value.trim().length >= 3) doSearch();
+  });
+  homeModePassagesBtn.addEventListener('click', () => {
+    searchMode = 'passages';
+    homeModePassagesBtn.classList.add('active');
+    homeModeVersesBtn.classList.remove('active');
+    if (searchInput.value.trim().length >= 3) doSearch();
+  });
+
+  function switchHomeMode(mode) {
+    homeMode = mode;
+    homeModeSearchBtn.classList.toggle('active', mode === 'search');
+    homeModeChatBtn.classList.toggle('active', mode === 'chat');
+    homeChatInput.placeholder = mode === 'search' ? 'Enter any text to find the most relevant verses or passages in the Bible...' : 'Ask anything about the Bible...';
+    homeSearchFooter.style.display = mode === 'search' ? '' : 'none';
+    homeChatFooter.style.display = mode === 'chat' ? '' : 'none';
+    if (mode === 'search') {
+      homeChatMessages.style.display = 'none';
+    } else {
+      if (homeSearchResults.style.display !== 'none') {
+        homeSearchResults.style.display = 'none';
+        clearSearch();
+        restoreSphere();
+      }
+    }
+  }
+
+  homeModeSearchBtn.addEventListener('click', () => switchHomeMode('search'));
+  homeModeChatBtn.addEventListener('click', () => switchHomeMode('chat'));
+
+  function handleHomeSubmit() {
+    if (homeMode === 'search') {
+      const q = homeChatInput.value.trim();
+      if (q.length < 3) return;
+      homeChatWelcome.style.display = 'none';
+      doSearch();
+    } else {
+      sendHomeChat();
+    }
+  }
+
+  homeChatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); handleHomeSubmit(); }
+  });
+  homeChatSendBtn.addEventListener('click', handleHomeSubmit);
+  homeChatInput.addEventListener('input', () => {
+    homeChatSendBtn.classList.toggle('ready', homeChatInput.value.trim().length > 0);
+  });
+  homeChatInput.addEventListener('focus', () => {
+    if (homeMode === 'search') loadSearchAssets();
+  });
+
+  // Read Bible button
+  document.getElementById('hc-read-bible').addEventListener('click', () => {
+    openReader(1, []);
+  });
+
+  // Search mode is default: show search footer, hide chat footer
+  homeChatFooter.style.display = 'none';
 
   // --- Representative verses ---
   if (data.representative_verses) {

@@ -30,9 +30,9 @@ XREF_CSV_URL = (
 XREF_CACHE = "cross_references.csv"
 MIN_VOTES = 20
 
-MIN_BOW = 0.01
-MAX_BOW = 0.08
-ARC_SEGMENTS = 5
+MIN_BOW = 0.003
+MAX_BOW = 0.02
+ARC_SEGMENTS = 30
 
 VOTE_BINS = [
     {"min": 20,  "max": 30,  "label": "20–29"},
