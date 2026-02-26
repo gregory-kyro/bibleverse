@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Complexity | The Bible, Mapped</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+</head>
+<body>
+
+<header>
+  <nav>
+    <a href="index.html" class="nav-brand">The Bible, <span>Mapped</span></a>
+    <ul class="nav-links">
+      <li><a href="map.html">Map</a></li>
+      <li><a href="network.html">Network</a></li>
+      <li><a href="complexity.html" class="active">Complexity</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main>
+  <div class="page-header">
+    <h1>Complexity</h1>
+    <p>
+      Information-theoretic and lexical metrics computed per book and aggregated
+      by genre. A quantitative view of how the text varies in structure,
+      vocabulary, and compressibility.
+    </p>
+  </div>
+
+  <!-- Summary stats -->
+  <div class="stat-row" id="summary-stats">
+    <div class="stat-card"><div class="stat-value" id="stat-verses">—</div><div class="stat-label">Verses</div></div>
+    <div class="stat-card"><div class="stat-value" id="stat-tokens">—</div><div class="stat-label">Tokens</div></div>
+    <div class="stat-card"><div class="stat-value" id="stat-types">—</div><div class="stat-label">Unique Words</div></div>
+    <div class="stat-card"><div class="stat-value" id="stat-hapax">—</div><div class="stat-label">Hapax Legomena</div></div>
+  </div>
+
+  <!-- Main metric chart -->
+  <section>
+    <div class="controls">
+      <div class="control-group">
+        <label for="metric-select">Metric</label>
+        <select id="metric-select">
+          <option value="shannon_entropy">Shannon Entropy</option>
+          <option value="compression_ratio">Compression Ratio</option>
+          <option value="type_token_ratio">Type-Token Ratio</option>
+          <option value="hapax_ratio">Hapax Ratio</option>
+          <option value="mean_word_length">Mean Word Length</option>
+          <option value="mean_sentence_length">Mean Sentence Length</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label for="sort-mode">Sort by</label>
+        <select id="sort-mode">
+          <option value="canonical">Canonical Order</option>
+          <option value="value_asc">Value (ascending)</option>
+          <option value="value_desc">Value (descending)</option>
+        </select>
+      </div>
+    </div>
+    <div id="legend" class="legend"></div>
+    <div class="viz-container viz-full" id="metric-chart">
+      <div class="loading">Loading metrics</div>
+    </div>
+  </section>
+
+  <!-- Genre comparison -->
+  <section>
+    <h2 style="margin-bottom:1rem;">Genre Comparison</h2>
+    <div class="viz-container viz-full" id="genre-chart" style="min-height:400px;">
+      <div class="loading">Loading genre data</div>
+    </div>
+  </section>
+
+  <!-- Intertextuality heatmap -->
+  <section>
+    <h2 style="margin-bottom:0.5rem;">Intertextuality Heatmap</h2>
+    <p class="dim small" style="margin-bottom:1rem;">
+      Book×book cosine similarity from mean verse embeddings. Warmer colors indicate
+      higher semantic similarity between books.
+    </p>
+    <div class="viz-container viz-full" id="heatmap-chart" style="min-height:700px;">
+      <div class="loading">Loading heatmap</div>
+    </div>
+  </section>
+
+  <!-- Hapax legomena -->
+  <section>
+    <h2 style="margin-bottom:0.5rem;">Hapax Legomena</h2>
+    <p class="dim small" style="margin-bottom:1rem;">
+      Words appearing exactly once in the entire KJV Bible. Their distribution
+      across books is informationally non-trivial — they often mark unique
+      narrative moments, technical terms, or translation artifacts.
+    </p>
+    <div class="viz-container viz-full" id="hapax-chart" style="min-height:400px;">
+      <div class="loading">Loading hapax data</div>
+    </div>
+  </section>
+
+  <div class="info-grid">
+    <div class="info-box">
+      <h3>What you're seeing</h3>
+      <p>
+        <strong>Shannon entropy</strong> measures the unpredictability of the next
+        token given the book's word distribution (higher = more diverse vocabulary usage).
+        <strong>Compression ratio</strong> is gzip-compressed size ÷ raw size
+        (lower = more repetitive/patterned text).
+        <strong>Type-token ratio</strong> is unique words ÷ total words
+        (higher = richer vocabulary relative to length).
+        <strong>Hapax ratio</strong> is words-used-once ÷ unique words within each book.
+        The heatmap shows cosine similarity between per-book mean embedding vectors.
+      </p>
+    </div>
+    <div class="info-box">
+      <h3>Try this</h3>
+      <ul>
+        <li>Sort by Shannon entropy descending — the most "surprising" books are short epistles with diverse vocabulary packed into few verses.</li>
+        <li>Compare compression ratio across genres: narrative (History) compresses differently from poetry (Wisdom) or legal text (Law).</li>
+        <li>In the heatmap, look for off-diagonal bright spots — these reveal unexpected semantic kinship across the canon.</li>
+      </ul>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <p>Metrics computed from KJV (public domain). Entropy: Shannon H. Compression: gzip-9. Heatmap: cosine similarity of mean embeddings.</p>
+</footer>
+
+<script src="js/common.js"></script>
+<script src="js/complexity.js"></script>
+</body>
+</html>

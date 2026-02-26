@@ -1,0 +1,2236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BibleVerse</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23f0d878'/><stop offset='1' stop-color='%23a07828'/></linearGradient></defs><path d='M14 2h4v28h-4zM8 9h16v4H8z' fill='url(%23g)'/></svg>">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var checkKatex = setInterval(function () {
+        if (typeof renderMathInElement === 'function') {
+          clearInterval(checkKatex);
+          renderMathInElement(document.body, {
+            delimiters: [
+              { left: '$$', right: '$$', display: true },
+              { left: '\\(', right: '\\)', display: false }
+            ]
+          });
+        }
+      }, 100);
+    });
+  </script>
+  <style>
+    body { background: #000; overflow-x: hidden; }
+
+    /* --- Splash intro --- */
+    .splash {
+      position: fixed;
+      inset: 0;
+      z-index: 100000;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      cursor: pointer;
+      overflow: hidden;
+    }
+    .splash-glow {
+      position: absolute;
+      width: 380px;
+      height: 380px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(201,168,76,0.13) 0%, rgba(160,120,40,0.04) 45%, transparent 70%);
+      opacity: 0;
+      animation: splGlowIn 2.2s ease-out 0.15s forwards;
+      pointer-events: none;
+    }
+    @keyframes splGlowIn {
+      0% { opacity: 0; transform: scale(0.4); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+    .splash-cross {
+      width: 74px;
+      height: auto;
+      opacity: 0;
+      animation: splCrossIn 1.3s ease-out 0.3s forwards;
+      filter: drop-shadow(0 0 20px rgba(201,168,76,0.2));
+      position: relative;
+      z-index: 2;
+    }
+    @keyframes splCrossIn {
+      0% { opacity: 0; transform: scale(0.8); filter: drop-shadow(0 0 15px rgba(201,168,76,0.05)); }
+      100% { opacity: 1; transform: scale(1); filter: drop-shadow(0 0 25px rgba(201,168,76,0.3)); }
+    }
+    .splash-title {
+      font-family: var(--font);
+      font-size: 2.4rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: transparent;
+      background: linear-gradient(165deg, #f0d878 0%, #c9a84c 40%, #8a6d2e 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      margin-top: 22px;
+      opacity: 0;
+      animation: splTextIn 0.9s ease-out 1.1s forwards;
+      position: relative;
+      z-index: 2;
+    }
+    .splash-subtitle {
+      font-family: var(--font);
+      font-size: 0.78rem;
+      font-weight: 300;
+      color: rgba(232,228,220,0.4);
+      letter-spacing: 0.06em;
+      margin-top: 8px;
+      opacity: 0;
+      animation: splTextIn 0.8s ease-out 1.6s forwards;
+      position: relative;
+      z-index: 2;
+    }
+    @keyframes splTextIn {
+      0% { opacity: 0; transform: translateY(10px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    .splash-particles {
+      position: absolute;
+      top: 45%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      z-index: 1;
+      pointer-events: none;
+    }
+    .splash-particle {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(201,168,76,0.7);
+      box-shadow: 0 0 4px rgba(201,168,76,0.25);
+      animation: splPart var(--d) ease-out var(--t) both;
+    }
+    @keyframes splPart {
+      0% { opacity: 0; transform: translate(var(--sx), var(--sy)) scale(0); }
+      12% { opacity: 0.6; transform: translate(var(--sx), var(--sy)) scale(1); }
+      100% { opacity: 0; transform: translate(var(--ex), var(--ey)) scale(0.15); }
+    }
+
+    /* Transition out */
+    .splash.out { pointer-events: none; }
+    .splash.out .splash-cross {
+      animation: splCrossOut 1.3s ease-in-out forwards !important;
+    }
+    @keyframes splCrossOut {
+      0% { opacity: 1; transform: scale(1); filter: drop-shadow(0 0 25px rgba(201,168,76,0.3)); }
+      35% { opacity: 1; transform: scale(1.06); filter: drop-shadow(0 0 50px rgba(201,168,76,0.55)); }
+      100% { opacity: 0; transform: scale(0.08); filter: drop-shadow(0 0 90px rgba(201,168,76,1)); }
+    }
+    .splash.out .splash-glow {
+      animation: splGlowOut 1.4s ease-in-out forwards !important;
+    }
+    @keyframes splGlowOut {
+      0% { opacity: 1; transform: scale(1); }
+      35% { opacity: 1; transform: scale(1.6); }
+      100% { opacity: 0; transform: scale(3.5); }
+    }
+    .splash.out .splash-title,
+    .splash.out .splash-subtitle {
+      animation: splTextOut 0.7s ease-in forwards !important;
+    }
+    @keyframes splTextOut {
+      0% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-18px); }
+    }
+    .splash.out::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: #000;
+      animation: splBgOut 0.6s ease-in 0.8s forwards;
+      opacity: 0;
+      pointer-events: none;
+    }
+    @keyframes splBgOut {
+      0% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+    .splash.out {
+      animation: splFade 0.4s ease-in 1.1s forwards;
+    }
+    @keyframes splFade {
+      0% { opacity: 1; }
+      100% { opacity: 0; visibility: hidden; }
+    }
+
+    /* --- Hero header (overlays sphere) --- */
+    .hero-header {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      z-index: 20;
+      text-align: center;
+      padding: 1.4rem 2rem 0;
+      pointer-events: none;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.25) 70%, transparent 100%);
+    }
+    .hero-header > * { pointer-events: auto; }
+    .hero-header h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: transparent;
+      background: linear-gradient(165deg, #f0d878 0%, #c9a84c 40%, #8a6d2e 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      line-height: 1.1;
+      margin: 0 0 0.3rem;
+    }
+    .hero-header .sub {
+      font-size: 0.72rem;
+      color: rgba(232,228,220,0.7);
+      max-width: 520px;
+      margin: 0 auto 0.6rem;
+      line-height: 1.6;
+      font-weight: 300;
+    }
+    .sphere-stats-float {
+      position: absolute;
+      top: 18%;
+      left: 0;
+      right: 0;
+      z-index: 25;
+      text-align: center;
+      font-size: 0.82rem;
+      color: rgba(232,228,220,0.65);
+      letter-spacing: 0.04em;
+      pointer-events: none;
+    }
+    .sphere-stats-float b { color: rgba(201,168,76,0.85); font-family: var(--mono); }
+
+    /* --- Left chat panel (ChatGPT-style) --- */
+    .left-panel {
+      position: absolute;
+      top: 0; bottom: 0;
+      left: calc(50vw - 720px);
+      z-index: 10;
+      width: 310px;
+      display: flex;
+      flex-direction: column;
+      padding-top: 3%;
+      padding-bottom: 3%;
+      pointer-events: auto;
+      opacity: 0;
+      animation: fadeIn 1.2s ease 0.6s forwards;
+    }
+    .chat-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: rgba(6,6,12,0.82);
+      border: 1px solid rgba(201,168,76,0.07);
+      border-radius: 12px;
+      backdrop-filter: blur(14px);
+      margin: auto 0;
+      max-height: 80vh;
+      overflow: hidden;
+    }
+    .chat-header {
+      padding: 14px 18px 10px;
+      border-bottom: 1px solid rgba(201,168,76,0.06);
+      flex-shrink: 0;
+    }
+    .chat-header h4 {
+      font-size: 0.66rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: rgba(201,168,76,0.8);
+      font-weight: 600;
+      margin: 0 0 10px;
+    }
+    .search-mode-toggle {
+      display: flex;
+      background: rgba(255,255,255,0.04);
+      border-radius: 10px;
+      padding: 3px;
+    }
+    .search-mode-toggle button {
+      flex: 1;
+      background: none;
+      border: none;
+      color: rgba(232,228,220,0.4);
+      font-size: 0.68rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      padding: 8px 0;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: color 0.2s, background 0.2s;
+    }
+    .search-mode-toggle button.active {
+      background: rgba(201,168,76,0.13);
+      color: rgba(232,228,220,0.92);
+    }
+    .search-mode-toggle button:hover:not(.active) {
+      color: rgba(232,228,220,0.6);
+    }
+    /* Collapsible book filter */
+    .search-filter { margin-top: 10px; }
+    .sf-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      font-size: 0.6rem;
+      color: rgba(232,228,220,0.45);
+      user-select: none;
+      transition: color 0.15s;
+    }
+    .sf-header:hover { color: rgba(232,228,220,0.7); }
+    .sf-badge {
+      font-size: 0.5rem;
+      color: rgba(201,168,76,0.7);
+      margin-left: 2px;
+    }
+    .sf-chevron {
+      margin-left: auto;
+      color: rgba(232,228,220,0.3);
+      transition: transform 0.2s;
+    }
+    .search-filter.open .sf-chevron { transform: rotate(180deg); }
+    .sf-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.25s ease;
+    }
+    .search-filter.open .sf-body { max-height: 500px; }
+    .sf-testament { margin-top: 8px; }
+    .sf-testament-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      padding: 4px 0;
+      user-select: none;
+    }
+    .sf-testament-header .sf-toggle-track { margin-left: auto; }
+    .sf-testament-header span:first-child {
+      font-size: 0.58rem;
+      font-weight: 600;
+      color: rgba(232,228,220,0.6);
+      letter-spacing: 0.03em;
+    }
+    .sf-testament-header .sf-t-chevron {
+      color: rgba(232,228,220,0.3);
+      transition: transform 0.2s;
+      flex-shrink: 0;
+    }
+    .sf-testament.open .sf-testament-header .sf-t-chevron {
+      transform: rotate(180deg);
+    }
+    .sf-toggle-track {
+      position: relative;
+      width: 26px; height: 14px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 7px;
+      flex-shrink: 0;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .sf-toggle-track input { display: none; }
+    .sf-toggle-track::after {
+      content: '';
+      position: absolute;
+      top: 2px; left: 2px;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: rgba(232,228,220,0.3);
+      transition: transform 0.2s, background 0.2s;
+    }
+    .sf-toggle-track.on { background: rgba(201,168,76,0.3); }
+    .sf-toggle-track.on::after {
+      transform: translateX(12px);
+      background: rgba(201,168,76,0.85);
+    }
+    .sf-book-list {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.2s ease;
+      padding-left: 4px;
+    }
+    .sf-testament.open .sf-book-list { max-height: 800px; }
+    .sf-book {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 2px 0;
+      cursor: pointer;
+      user-select: none;
+    }
+    .sf-book span {
+      font-size: 0.54rem;
+      color: rgba(232,228,220,0.45);
+      transition: color 0.12s;
+    }
+    .sf-book:hover span { color: rgba(232,228,220,0.7); }
+    .sf-book.off span { color: rgba(232,228,220,0.15); }
+    .sf-book .sf-toggle-track { width: 22px; height: 12px; border-radius: 6px; }
+    .sf-book .sf-toggle-track::after { width: 8px; height: 8px; top: 2px; left: 2px; }
+    .sf-book .sf-toggle-track.on::after { transform: translateX(10px); }
+
+    /* Chat messages area */
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 18px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(201,168,76,0.1) transparent;
+    }
+    .chat-empty {
+      text-align: center;
+      padding: 40px 10px;
+      color: rgba(232,228,220,0.7);
+      font-size: 0.72rem;
+      line-height: 1.7;
+    }
+    .chat-empty .chat-icon {
+      font-size: 1.6rem;
+      margin-bottom: 10px;
+      opacity: 0.3;
+    }
+    #search-results-desc {
+      font-size: 0.58rem;
+      color: rgba(232,228,220,0.5);
+      margin-bottom: 8px;
+      line-height: 1.5;
+    }
+
+    /* Result items as chat bubbles */
+    .sr-item {
+      background: rgba(201,168,76,0.04);
+      border: 1px solid rgba(201,168,76,0.06);
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .sr-item:hover {
+      border-color: rgba(201,168,76,0.15);
+      background: rgba(201,168,76,0.07);
+    }
+    .sr-item.active {
+      border-color: rgba(201,168,76,0.3);
+      background: rgba(201,168,76,0.1);
+    }
+    .sr-ref {
+      color: #c9a84c;
+      font-weight: 600;
+      font-size: 0.7rem;
+    }
+    .sr-score {
+      float: right;
+      font-family: var(--mono);
+      font-size: 0.56rem;
+      color: rgba(201,168,76,0.4);
+    }
+    .sr-text {
+      color: rgba(232,228,220,0.4);
+      display: block;
+      margin-top: 4px;
+      font-size: 0.72rem;
+      line-height: 1.55;
+    }
+    .sr-title {
+      color: rgba(232,228,220,0.65);
+      font-weight: 600;
+      font-size: 0.68rem;
+      display: block;
+      margin-top: 2px;
+    }
+    .sr-passage-text {
+      color: rgba(232,228,220,0.3);
+      display: block;
+      margin-top: 4px;
+      font-size: 0.64rem;
+      line-height: 1.55;
+      max-height: 3.2em;
+      overflow: hidden;
+    }
+    .sr-bar {
+      height: 2px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 1px;
+      margin-top: 6px;
+    }
+    .sr-bar-fill {
+      height: 100%;
+      background: rgba(201,168,76,0.3);
+      border-radius: 1px;
+    }
+
+    /* Chat input area (bottom, like ChatGPT) */
+    .chat-input-area {
+      padding: 12px 14px;
+      border-top: 1px solid rgba(201,168,76,0.06);
+      flex-shrink: 0;
+    }
+    .chat-input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    #verse-search {
+      width: 100%;
+      background: rgba(12,12,20,0.9);
+      border: 1px solid rgba(201,168,76,0.1);
+      border-radius: 22px;
+      color: #e8e4dc;
+      font-family: var(--font);
+      font-size: 0.78rem;
+      padding: 10px 72px 10px 16px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    #verse-search::placeholder { color: rgba(232,228,220,0.5); }
+    #verse-search:focus { border-color: rgba(201,168,76,0.35); }
+    .chat-clear-btn {
+      position: absolute;
+      right: 40px;
+      background: none;
+      border: none;
+      color: rgba(232,228,220,0.25);
+      font-size: 0.8rem;
+      cursor: pointer;
+      padding: 4px;
+      line-height: 1;
+    }
+    .chat-clear-btn:hover { color: #e8e4dc; }
+    .chat-send-btn {
+      position: absolute;
+      right: 6px;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(201,168,76,0.8);
+      color: #0a0a14;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, opacity 0.15s;
+      opacity: 0.5;
+    }
+    .chat-send-btn:hover { background: #c9a84c; opacity: 1; }
+    .chat-send-btn.ready { opacity: 1; }
+    #search-status {
+      display: none;
+      text-align: center;
+      font-size: 0.62rem;
+      font-family: var(--mono);
+      color: rgba(201,168,76,0.5);
+      padding: 8px 0 0;
+      letter-spacing: 0.06em;
+    }
+    #search-status .search-dot {
+      display: inline-block;
+      width: 5px; height: 5px;
+      background: rgba(201,168,76,0.6);
+      border-radius: 50%;
+      margin-right: 6px;
+      animation: searchPulse 1.2s ease-in-out infinite;
+    }
+    @keyframes searchPulse {
+      0%, 100% { opacity: 0.3; } 50% { opacity: 1; }
+    }
+
+    /* --- Passage modal --- */
+    .passage-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(8px);
+      justify-content: center;
+      align-items: center;
+    }
+    .passage-modal-overlay.open { display: flex; }
+    .passage-modal {
+      background: rgba(10,10,18,0.96);
+      border: 1px solid rgba(201,168,76,0.12);
+      border-radius: 14px;
+      max-width: 620px;
+      width: 90vw;
+      max-height: 80vh;
+      overflow-y: auto;
+      padding: 32px 36px;
+      position: relative;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+      scrollbar-width: thin;
+      scrollbar-color: rgba(201,168,76,0.12) transparent;
+    }
+    .passage-modal-close {
+      position: absolute;
+      top: 14px; right: 18px;
+      background: none; border: none;
+      color: rgba(232,228,220,0.3);
+      font-size: 1.2rem;
+      cursor: pointer;
+      transition: color 0.15s;
+    }
+    .passage-modal-close:hover { color: #e8e4dc; }
+    .passage-modal-ref {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: #c9a84c;
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+    }
+    .passage-modal-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #e8e4dc;
+      line-height: 1.35;
+      margin-bottom: 20px;
+    }
+    .passage-modal-body {
+      font-size: 0.88rem;
+      line-height: 1.85;
+      color: rgba(232,228,220,0.7);
+    }
+    .passage-modal-body .pm-verse-num {
+      font-family: var(--mono);
+      font-size: 0.6rem;
+      color: rgba(201,168,76,0.35);
+      vertical-align: super;
+      margin-right: 2px;
+    }
+    .pm-translation-toggle {
+      display: flex;
+      gap: 0;
+      margin-bottom: 18px;
+    }
+    .pm-translation-toggle button {
+      flex: 1;
+      background: rgba(12,12,20,0.6);
+      border: 1px solid rgba(201,168,76,0.08);
+      color: rgba(232,228,220,0.3);
+      font-family: var(--mono);
+      font-size: 0.62rem;
+      letter-spacing: 0.06em;
+      padding: 8px 0;
+      cursor: pointer;
+      transition: all 0.18s;
+    }
+    .pm-translation-toggle button:first-child { border-radius: 6px 0 0 6px; border-right: none; }
+    .pm-translation-toggle button:last-child { border-radius: 0 6px 6px 0; }
+    .pm-translation-toggle button.active {
+      background: rgba(201,168,76,0.12);
+      border-color: rgba(201,168,76,0.25);
+      color: #c9a84c;
+    }
+    .pm-translation-toggle button:hover:not(.active) {
+      border-color: rgba(201,168,76,0.15);
+      color: rgba(232,228,220,0.5);
+    }
+    .pm-read-context {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 18px;
+      padding: 9px 16px;
+      background: rgba(201,168,76,0.06);
+      border: 1px solid rgba(201,168,76,0.12);
+      border-radius: 8px;
+      color: rgba(201,168,76,0.7);
+      font-family: var(--mono);
+      font-size: 0.62rem;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: all 0.18s;
+      width: fit-content;
+    }
+    .pm-read-context:hover {
+      background: rgba(201,168,76,0.12);
+      border-color: rgba(201,168,76,0.25);
+      color: #c9a84c;
+    }
+    .pm-read-context svg { width: 13px; height: 13px; opacity: 0.7; }
+    .pm-read-context:hover svg { opacity: 1; }
+
+    /* --- Reader overlay --- */
+    .reader-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      background: rgba(6,6,12,0.98);
+      flex-direction: column;
+    }
+    .reader-overlay.open { display: flex; }
+    .reader-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 28px;
+      border-bottom: 1px solid rgba(201,168,76,0.08);
+      flex-shrink: 0;
+      gap: 12px;
+      background: rgba(6,6,12,0.96);
+    }
+    .reader-topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      min-width: 0;
+    }
+    .reader-close {
+      background: none;
+      border: none;
+      color: rgba(232,228,220,0.3);
+      font-size: 1.2rem;
+      cursor: pointer;
+      transition: color 0.15s;
+      flex-shrink: 0;
+    }
+    .reader-close:hover { color: #e8e4dc; }
+    .reader-book-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: rgba(232,228,220,0.85);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .reader-chapter-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .reader-chapter-nav > button {
+      background: none;
+      border: none;
+      color: rgba(232,228,220,0.3);
+      border-radius: 6px;
+      width: 28px;
+      height: 28px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+    .reader-chapter-nav > button:hover {
+      background: rgba(232,228,220,0.05);
+      color: rgba(232,228,220,0.75);
+    }
+    .reader-chapter-nav > button:disabled {
+      opacity: 0.15;
+      cursor: default;
+      background: none;
+    }
+    /* Custom dropdown */
+    .cd-wrap {
+      position: relative;
+      display: inline-block;
+    }
+    .cd-trigger {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: none;
+      border: none;
+      color: rgba(232,228,220,0.7);
+      font-family: var(--sans);
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      padding: 6px 2px;
+      cursor: pointer;
+      transition: color 0.15s;
+      white-space: nowrap;
+    }
+    .cd-trigger:hover { color: rgba(232,228,220,0.95); }
+    .cd-trigger .cd-chev {
+      width: 8px; height: 5px;
+      opacity: 0.3;
+      transition: opacity 0.15s, transform 0.2s;
+      flex-shrink: 0;
+    }
+    .cd-wrap.open .cd-chev { transform: rotate(180deg); opacity: 0.5; }
+    .cd-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      min-width: 100%;
+      max-height: 320px;
+      overflow-y: auto;
+      background: rgba(14,14,22,0.98);
+      border: 1px solid rgba(232,228,220,0.06);
+      border-radius: 10px;
+      padding: 4px;
+      z-index: 100;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      scrollbar-width: thin;
+      scrollbar-color: rgba(232,228,220,0.06) transparent;
+    }
+    .cd-wrap.open .cd-menu { display: block; }
+    .cd-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      border-radius: 7px;
+      font-family: var(--sans);
+      font-size: 0.72rem;
+      color: rgba(232,228,220,0.55);
+      cursor: pointer;
+      transition: background 0.12s, color 0.12s;
+      white-space: nowrap;
+    }
+    .cd-item:hover {
+      background: rgba(232,228,220,0.05);
+      color: rgba(232,228,220,0.85);
+    }
+    .cd-item.active {
+      color: rgba(201,168,76,0.9);
+    }
+    .cd-item .cd-check {
+      width: 14px;
+      height: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .cd-item .cd-check svg {
+      width: 10px; height: 10px;
+      opacity: 0;
+      transition: opacity 0.1s;
+    }
+    .cd-item.active .cd-check svg { opacity: 1; }
+    .cd-menu-search {
+      padding: 6px 8px;
+      margin-bottom: 2px;
+    }
+    .cd-menu-search input {
+      width: 100%;
+      background: rgba(232,228,220,0.03);
+      border: 1px solid rgba(232,228,220,0.06);
+      border-radius: 6px;
+      color: rgba(232,228,220,0.8);
+      font-family: var(--sans);
+      font-size: 0.68rem;
+      padding: 6px 10px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .cd-menu-search input:focus {
+      border-color: rgba(201,168,76,0.2);
+    }
+    .cd-menu-search input::placeholder {
+      color: rgba(232,228,220,0.2);
+    }
+    .cd-divider {
+      height: 1px;
+      background: rgba(232,228,220,0.04);
+      margin: 4px 8px;
+    }
+    .cd-group-label {
+      font-size: 0.56rem;
+      font-weight: 600;
+      color: rgba(201,168,76,0.4);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 8px 12px 4px;
+    }
+    .reader-topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .reader-tl-toggle {
+      display: flex;
+      gap: 4px;
+      background: rgba(232,228,220,0.03);
+      border-radius: 8px;
+      padding: 3px;
+    }
+    .reader-tl-toggle button {
+      background: none;
+      border: none;
+      color: rgba(232,228,220,0.3);
+      font-family: var(--sans);
+      font-size: 0.62rem;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      padding: 5px 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+      border-radius: 6px;
+    }
+    .reader-tl-toggle button:hover:not(.active) {
+      color: rgba(232,228,220,0.5);
+    }
+    .reader-tl-toggle button.active {
+      background: rgba(232,228,220,0.07);
+      color: rgba(232,228,220,0.85);
+    }
+    .reader-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 40px 20px 80px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(201,168,76,0.1) transparent;
+    }
+    .reader-inner {
+      max-width: 660px;
+      margin: 0 auto;
+    }
+    .reader-chapter-heading {
+      font-family: var(--sans);
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: rgba(201,168,76,0.45);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin: 48px 0 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(201,168,76,0.06);
+    }
+    .reader-chapter-heading:first-child { margin-top: 0; }
+    .reader-verse {
+      display: inline;
+    }
+    .reader-verse-num {
+      font-family: var(--mono);
+      font-size: 0.55rem;
+      color: rgba(201,168,76,0.3);
+      vertical-align: super;
+      margin-right: 2px;
+      margin-left: 4px;
+      line-height: 0;
+    }
+    .reader-verse-text {
+      font-size: 0.92rem;
+      line-height: 2;
+      color: rgba(232,228,220,0.7);
+    }
+    .reader-verse.highlight .reader-verse-text {
+      color: rgba(232,228,220,0.95);
+      background: rgba(201,168,76,0.08);
+      box-shadow: 0 0 0 3px rgba(201,168,76,0.08);
+      border-radius: 3px;
+    }
+    .reader-verse.highlight .reader-verse-num {
+      color: rgba(201,168,76,0.7);
+    }
+
+    /* --- Reader chat panel --- */
+    .reader-body {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .reader-chat {
+      width: 370px;
+      min-width: 370px;
+      display: flex;
+      flex-direction: column;
+      background: rgba(8,8,14,0.95);
+      border-left: 1px solid rgba(201,168,76,0.06);
+      flex-shrink: 0;
+      position: relative;
+    }
+    .reader-chat-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      border-bottom: 1px solid rgba(232,228,220,0.04);
+      flex-shrink: 0;
+      min-width: 370px;
+    }
+    .reader-chat-header span {
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: rgba(232,228,220,0.45);
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+    .reader-chat-header button {
+      background: none;
+      border: none;
+      color: rgba(232,228,220,0.18);
+      cursor: pointer;
+      padding: 2px;
+      transition: color 0.15s;
+    }
+    .reader-chat-header button:hover { color: rgba(232,228,220,0.5); }
+    .reader-chat-header button svg { width: 13px; height: 13px; }
+    .reader-chat-header .cd-trigger {
+      font-size: 0.65rem;
+      color: rgba(232,228,220,0.45);
+    }
+    .reader-chat-header .cd-menu {
+      min-width: 180px;
+    }
+    .reader-chat-model-loading {
+      display: none;
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      background: rgba(8,8,14,0.97);
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+    .reader-chat-model-loading.active {
+      display: flex;
+    }
+    .rcml-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      width: 100%;
+    }
+    .rcml-dots {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 20px;
+    }
+    .rcml-dots span {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: rgba(201,168,76,0.5);
+      animation: rcmlPulse 1.4s ease-in-out infinite;
+    }
+    .rcml-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .rcml-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes rcmlPulse {
+      0%, 80%, 100% { opacity: 0.25; transform: scale(0.85); }
+      40% { opacity: 1; transform: scale(1); }
+    }
+    .rcml-text {
+      font-family: var(--sans);
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: rgba(232,228,220,0.6);
+      letter-spacing: 0.01em;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .rcml-bar-wrap {
+      width: 60%;
+      max-width: 200px;
+      height: 2px;
+      background: rgba(232,228,220,0.04);
+      border-radius: 1px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .rcml-bar {
+      height: 100%;
+      width: 0%;
+      background: rgba(201,168,76,0.6);
+      border-radius: 1px;
+      transition: width 0.4s ease;
+    }
+    .rcml-sub {
+      font-family: var(--sans);
+      font-size: 0.56rem;
+      color: rgba(232,228,220,0.22);
+      letter-spacing: 0.01em;
+      text-align: center;
+      max-width: 280px;
+      line-height: 1.65;
+    }
+    .reader-chat-settings {
+      padding: 12px 16px 14px;
+      border-bottom: 1px solid rgba(201,168,76,0.04);
+      min-width: 370px;
+    }
+    .reader-chat-settings.highlight {
+      animation: settingsPulse 0.6s ease;
+    }
+    @keyframes settingsPulse {
+      0%, 100% { background: transparent; }
+      40% { background: rgba(201,168,76,0.04); }
+    }
+    .reader-chat-settings-msg {
+      font-size: 0.62rem;
+      color: rgba(232,228,220,0.4);
+      line-height: 1.65;
+      margin-bottom: 10px;
+    }
+    .reader-chat-settings-msg a {
+      color: rgba(201,168,76,0.55);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .reader-chat-settings-msg a:hover { color: #c9a84c; }
+    .reader-chat-key-wrap {
+      display: flex;
+      gap: 6px;
+    }
+    .reader-chat-key-wrap input {
+      flex: 1;
+      background: rgba(12,12,20,0.6);
+      border: 1px solid rgba(201,168,76,0.06);
+      border-radius: 5px;
+      color: rgba(232,228,220,0.5);
+      font-family: var(--mono);
+      font-size: 0.56rem;
+      padding: 6px 9px;
+      outline: none;
+    }
+    .reader-chat-key-wrap input:focus { border-color: rgba(201,168,76,0.18); }
+    .reader-chat-key-wrap button {
+      background: rgba(201,168,76,0.08);
+      border: 1px solid rgba(201,168,76,0.1);
+      border-radius: 5px;
+      color: rgba(232,228,220,0.35);
+      font-size: 0.52rem;
+      padding: 4px 10px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+    .reader-chat-key-wrap button:hover {
+      background: rgba(201,168,76,0.14);
+      color: rgba(232,228,220,0.6);
+    }
+    .reader-chat-settings-hint {
+      font-size: 0.5rem;
+      color: rgba(232,228,220,0.13);
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+    .reader-chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      min-width: 370px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(201,168,76,0.05) transparent;
+    }
+    .reader-chat-empty {
+      color: rgba(232,228,220,0.18);
+      font-size: 0.74rem;
+      text-align: center;
+      margin-top: 40%;
+      line-height: 1.8;
+      padding: 0 24px;
+    }
+    .chat-msg {
+      margin-bottom: 14px;
+      max-width: 92%;
+    }
+    .chat-msg-user { margin-left: auto; text-align: right; }
+    .chat-msg-user .chat-bubble {
+      background: rgba(201,168,76,0.08);
+      border: 1px solid rgba(201,168,76,0.1);
+      border-radius: 12px 12px 2px 12px;
+      padding: 9px 13px;
+      display: inline-block;
+      text-align: left;
+    }
+    .chat-msg-assistant .chat-bubble {
+      background: rgba(232,228,220,0.02);
+      border: 1px solid rgba(232,228,220,0.04);
+      border-radius: 12px 12px 12px 2px;
+      padding: 9px 13px;
+      display: inline-block;
+    }
+    .chat-bubble {
+      font-size: 0.76rem;
+      line-height: 1.75;
+      color: rgba(232,228,220,0.65);
+    }
+    .chat-msg-user .chat-bubble { color: rgba(232,228,220,0.75); }
+    .chat-msg-label {
+      font-size: 0.52rem;
+      color: rgba(232,228,220,0.18);
+      margin-bottom: 3px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+    }
+    .chat-bubble strong { color: rgba(232,228,220,0.85); font-weight: 600; }
+    .chat-bubble em { color: rgba(201,168,76,0.6); font-style: italic; }
+    .reader-chat-input-wrap {
+      display: flex;
+      gap: 8px;
+      padding: 11px 16px;
+      border-top: 1px solid rgba(201,168,76,0.05);
+      flex-shrink: 0;
+      align-items: flex-end;
+      min-width: 370px;
+    }
+    .reader-chat-input-wrap textarea {
+      flex: 1;
+      background: rgba(12,12,20,0.5);
+      border: 1px solid rgba(201,168,76,0.06);
+      border-radius: 8px;
+      color: rgba(232,228,220,0.65);
+      font-family: var(--font);
+      font-size: 0.74rem;
+      padding: 9px 12px;
+      outline: none;
+      resize: none;
+      max-height: 96px;
+      line-height: 1.5;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(201,168,76,0.05) transparent;
+    }
+    .reader-chat-input-wrap textarea:focus { border-color: rgba(201,168,76,0.18); }
+    .reader-chat-input-wrap textarea::placeholder { color: rgba(232,228,220,0.15); }
+    .reader-chat-input-wrap button {
+      background: rgba(201,168,76,0.1);
+      border: 1px solid rgba(201,168,76,0.12);
+      border-radius: 8px;
+      color: rgba(201,168,76,0.6);
+      width: 34px;
+      height: 34px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.15s;
+    }
+    .reader-chat-input-wrap button:hover {
+      background: rgba(201,168,76,0.18);
+      color: #c9a84c;
+    }
+    .reader-chat-input-wrap button svg { width: 14px; height: 14px; }
+    .reader-chat-disclaimer {
+      padding: 0 16px 10px;
+      font-size: 0.48rem;
+      color: rgba(232,228,220,0.13);
+      text-align: center;
+      letter-spacing: 0.02em;
+      line-height: 1.6;
+      min-width: 370px;
+      flex-shrink: 0;
+    }
+
+    /* --- Sphere section --- */
+    .sphere-section {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      min-height: 600px;
+      background: #000;
+    }
+    #sphere-plot {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* --- Sphere overlays --- */
+    .sphere-panel {
+      position: absolute;
+      z-index: 10;
+      background: rgba(6,6,12,0.82);
+      border: 1px solid rgba(201,168,76,0.07);
+      border-radius: 10px;
+      padding: 14px 18px;
+      backdrop-filter: blur(14px);
+      opacity: 0;
+      animation: fadeIn 1.2s ease 0.6s forwards;
+    }
+
+    .right-panels {
+      position: absolute;
+      top: 0; bottom: 0; right: calc(50vw - 720px);
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding-top: 3%;
+      padding-bottom: 3%;
+      gap: 8px;
+      pointer-events: none;
+      width: 310px;
+    }
+    .right-panels > * { pointer-events: auto; }
+    .sphere-legend {
+      position: relative;
+      width: 100%;
+      padding: 10px 14px;
+    }
+    .sphere-legend h4 {
+      font-size: 0.66rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: rgba(201,168,76,0.8);
+      font-weight: 600;
+      margin: 0 0 6px;
+    }
+    .legend-columns {
+      display: flex;
+      gap: 10px;
+    }
+    .legend-col {
+      flex: 1;
+      min-width: 0;
+    }
+    .legend-col-toggle {
+      font-size: 0.6rem;
+      color: rgba(201,168,76,0.85);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 2px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      user-select: none;
+      transition: color 0.15s;
+    }
+    .legend-col-toggle:hover { color: rgba(201,168,76,0.6); }
+    .legend-col-toggle input[type="checkbox"] {
+      accent-color: #c9a84c;
+      width: 9px; height: 9px;
+      margin: 0;
+      cursor: pointer;
+    }
+    .sphere-legend .legend-item {
+      font-size: 0.64rem;
+      gap: 3px;
+      margin-bottom: 0;
+      display: flex;
+      align-items: center;
+      line-height: 1.4;
+      color: rgba(232,228,220,0.75);
+      cursor: pointer;
+      user-select: none;
+      transition: opacity 0.12s;
+    }
+    .sphere-legend .legend-item.off { opacity: 0.15; }
+    .sphere-legend .legend-item input[type="checkbox"] { display: none; }
+    .sphere-legend .legend-item span:last-child {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .sphere-legend .legend-swatch {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .legend-divider {
+      height: 1px;
+      background: rgba(201,168,76,0.06);
+      margin: 6px 0;
+    }
+    .legend-edge-row {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.64rem;
+      color: rgba(232,228,220,0.7);
+      margin-bottom: 2px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .legend-edge-row.off { opacity: 0.15; }
+    .legend-edge-row input[type="checkbox"] { display: none; }
+    .legend-edge-swatch {
+      width: 18px;
+      height: 2px;
+      border-radius: 1px;
+      flex-shrink: 0;
+    }
+
+    /* Edge legend panel (bottom-right, above general controls) */
+    .sphere-edge-panel {
+      position: relative;
+      width: 100%;
+      padding: 10px 14px;
+    }
+    .sphere-edge-panel h4 {
+      font-size: 0.66rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: rgba(201,168,76,0.8);
+      font-weight: 600;
+      margin: 0 0 6px;
+    }
+    .sphere-edge-panel .edge-legend {
+      margin-bottom: 8px;
+    }
+
+    /* --- Reader CTA (inside sphere, centered at bottom) --- */
+    .reader-cta {
+      position: absolute;
+      bottom: 5%;
+      left: 0;
+      right: 0;
+      z-index: 25;
+      display: flex;
+      justify-content: center;
+      pointer-events: none;
+      opacity: 0;
+      animation: fadeIn 1.2s ease 0.6s forwards;
+    }
+    .reader-cta .reader-cta-btn {
+      pointer-events: auto;
+    }
+
+    /* --- Viewer mode (immersive zoom) --- */
+    .sphere-section .hero-header,
+    .sphere-section .sphere-stats-float,
+    .sphere-section .right-panels,
+    .sphere-section .reader-cta {
+      transition: opacity 0.5s ease;
+    }
+    .sphere-section.viewer-mode .hero-header,
+    .sphere-section.viewer-mode .sphere-stats-float,
+    .sphere-section.viewer-mode .right-panels,
+    .sphere-section.viewer-mode .left-panel,
+    .sphere-section.viewer-mode .reader-cta {
+      opacity: 0 !important;
+      pointer-events: none;
+    }
+    .viewer-exit {
+      display: none;
+      position: absolute;
+      top: 20px; left: 50%;
+      transform: translateX(-50%);
+      z-index: 30;
+      background: rgba(6,6,12,0.7);
+      border: 1px solid rgba(201,168,76,0.2);
+      border-radius: 8px;
+      color: rgba(232,228,220,0.6);
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      padding: 8px 20px;
+      cursor: pointer;
+      backdrop-filter: blur(12px);
+      letter-spacing: 0.04em;
+      transition: border-color 0.2s, color 0.2s, opacity 0.4s;
+    }
+    .viewer-exit:hover {
+      border-color: rgba(201,168,76,0.5);
+      color: #c9a84c;
+    }
+    .sphere-section.viewer-mode .viewer-exit {
+      display: block;
+      animation: fadeIn 0.6s ease 0.4s both;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .reader-cta-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: none;
+      border: 1px solid rgba(201,168,76,0.12);
+      border-radius: 14px;
+      padding: 18px 36px;
+      cursor: pointer;
+      transition: border-color 0.3s, background 0.3s, transform 0.2s;
+      text-decoration: none;
+    }
+    .reader-cta-btn:hover {
+      border-color: rgba(201,168,76,0.3);
+      background: rgba(201,168,76,0.04);
+      transform: translateY(-1px);
+    }
+    .reader-cta-icon {
+      width: 22px;
+      height: 22px;
+      opacity: 0.55;
+      flex-shrink: 0;
+    }
+    .reader-cta-text {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      text-align: left;
+    }
+    .reader-cta-title {
+      font-family: var(--font);
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: rgba(232,228,220,0.82);
+      letter-spacing: -0.01em;
+    }
+    .reader-cta-sub {
+      font-family: var(--sans);
+      font-size: 0.62rem;
+      color: rgba(232,228,220,0.32);
+      letter-spacing: 0.01em;
+      font-weight: 400;
+    }
+    .reader-cta-arrow {
+      width: 16px;
+      height: 16px;
+      opacity: 0.3;
+      margin-left: 6px;
+      transition: opacity 0.2s, transform 0.2s;
+      flex-shrink: 0;
+    }
+    .reader-cta-btn:hover .reader-cta-arrow {
+      opacity: 0.6;
+      transform: translateX(3px);
+    }
+
+    /* --- Methodology --- */
+    .methodology {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 4rem 2rem 3rem;
+    }
+    .methodology h2 {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: rgba(201,168,76,0.45);
+      font-weight: 600;
+      margin-bottom: 2rem;
+      text-align: center;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 24px;
+      border: 1px solid rgba(201,168,76,0.08);
+      border-radius: 8px;
+      background: rgba(12,12,20,0.4);
+      transition: border-color 0.2s, color 0.2s, background 0.2s;
+    }
+    .methodology h2:hover {
+      border-color: rgba(201,168,76,0.2);
+      color: rgba(201,168,76,0.7);
+      background: rgba(12,12,20,0.6);
+    }
+    .methodology h2 .meth-chevron {
+      font-size: 0.5rem;
+      transition: transform 0.25s ease;
+    }
+    .methodology h2.open .meth-chevron { transform: rotate(90deg); }
+    .method-block {
+      margin-bottom: 2rem;
+    }
+    .method-block h3 {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: rgba(232,228,220,0.7);
+      margin-bottom: 0.5rem;
+      letter-spacing: 0;
+    }
+    .method-block p {
+      font-size: 0.82rem;
+      color: rgba(232,228,220,0.35);
+      line-height: 1.8;
+    }
+    .method-block .katex-display {
+      margin: 1rem 0;
+    }
+    .method-block .katex { font-size: 0.92em; }
+
+    /* --- Representative verses --- */
+    .rep-verses {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 3rem 2rem 2rem;
+    }
+    .rep-verses h2 {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: rgba(201,168,76,0.45);
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      text-align: center;
+    }
+    .rep-verses .rep-sub {
+      font-size: 0.76rem;
+      color: rgba(232,228,220,0.25);
+      text-align: center;
+      margin-bottom: 2rem;
+      line-height: 1.6;
+    }
+    .rv-group {
+      margin-bottom: 1rem;
+    }
+    .rv-toggle {
+      width: 100%;
+      background: rgba(12,12,20,0.6);
+      border: 1px solid rgba(201,168,76,0.1);
+      border-radius: 8px;
+      color: rgba(201,168,76,0.5);
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 12px 18px;
+      cursor: pointer;
+      text-align: left;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .rv-toggle:hover { border-color: rgba(201,168,76,0.3); color: #c9a84c; }
+    .rv-toggle.open { border-radius: 8px 8px 0 0; border-bottom-color: transparent; }
+    .rv-toggle.open .rv-arrow { transform: rotate(90deg); }
+    .rv-arrow { transition: transform 0.2s; font-size: 0.6rem; }
+    .rv-search-wrap {
+      background: rgba(12,12,20,0.6);
+      border: 1px solid rgba(201,168,76,0.1);
+      border-top: none;
+      padding: 8px 14px;
+    }
+    .rv-search {
+      width: 100%;
+      background: rgba(6,6,12,0.8);
+      border: 1px solid rgba(201,168,76,0.08);
+      border-radius: 5px;
+      color: #e8e4dc;
+      font-family: var(--font);
+      font-size: 0.72rem;
+      padding: 7px 12px;
+      outline: none;
+    }
+    .rv-search::placeholder { color: rgba(232,228,220,0.15); }
+    .rv-search:focus { border-color: rgba(201,168,76,0.25); }
+    .rv-list {
+      background: rgba(12,12,20,0.6);
+      border: 1px solid rgba(201,168,76,0.1);
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      padding: 0 18px 12px;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    .rv-card {
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+    }
+    .rv-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 3px;
+    }
+    .rv-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .rv-book {
+      font-size: 0.76rem;
+      font-weight: 600;
+      color: rgba(232,228,220,0.7);
+    }
+    .rv-meta {
+      font-size: 0.58rem;
+      font-family: var(--mono);
+      color: rgba(232,228,220,0.18);
+      margin-left: auto;
+    }
+    .rv-ref {
+      font-size: 0.68rem;
+      color: rgba(201,168,76,0.5);
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+    .rv-text {
+      font-size: 0.78rem;
+      color: rgba(232,228,220,0.35);
+      line-height: 1.7;
+      font-style: italic;
+    }
+
+    /* --- Below fold --- */
+    .below-fold {
+      position: relative;
+      z-index: 3;
+      background: #000;
+    }
+    .below-fold main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 4rem 2rem 3rem;
+    }
+    .section-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: rgba(201,168,76,0.45);
+      font-weight: 600;
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+    .module-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+    }
+    .module-card {
+      background: rgba(10,10,18,0.7);
+      border: 1px solid rgba(201,168,76,0.06);
+      border-radius: 12px;
+      padding: 2.5rem 2rem;
+      text-decoration: none;
+      color: var(--text);
+      transition: border-color 0.3s, transform 0.2s, box-shadow 0.3s;
+      display: flex;
+      flex-direction: column;
+    }
+    .module-card:hover {
+      border-color: rgba(201,168,76,0.2);
+      transform: translateY(-3px);
+      box-shadow: 0 12px 40px rgba(201,168,76,0.04);
+      color: var(--text);
+    }
+    .module-num {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: rgba(201,168,76,0.35);
+      letter-spacing: 0.1em;
+      margin-bottom: 1.2rem;
+    }
+    .module-card h2 { font-size: 1.3rem; font-weight: 600; margin-bottom: 0.7rem; }
+    .module-card p { color: rgba(232,228,220,0.38); font-size: 0.86rem; line-height: 1.7; flex-grow: 1; }
+    .module-enter {
+      margin-top: 1.5rem;
+      font-size: 0.76rem;
+      color: rgba(201,168,76,0.4);
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      transition: color 0.2s;
+    }
+    .module-card:hover .module-enter { color: #c9a84c; }
+
+    .manifesto {
+      max-width: 600px;
+      margin: 4rem auto 0;
+      text-align: center;
+      padding: 3rem 0;
+      border-top: 1px solid rgba(201,168,76,0.04);
+    }
+    .manifesto h3 {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: rgba(201,168,76,0.35);
+      margin-bottom: 1.5rem;
+    }
+    .manifesto p { color: rgba(232,228,220,0.3); font-size: 0.86rem; line-height: 1.9; }
+
+    .hero-footer {
+      text-align: center;
+      padding: 2.5rem 2rem;
+      color: rgba(232,228,220,0.12);
+      font-size: 0.7rem;
+      font-family: var(--mono);
+      letter-spacing: 0.04em;
+      border-top: 1px solid rgba(255,255,255,0.02);
+    }
+
+    @media (max-width: 800px) {
+      .hero-header h1 { font-size: 1.5rem; }
+      .hero-header .sub { font-size: 0.64rem; padding: 0 1rem; }
+      .sphere-section { height: 80vh; min-height: 380px; }
+      .module-grid { grid-template-columns: 1fr; }
+      .methodology { padding: 2.5rem 1.2rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Splash intro -->
+<div class="splash" id="splash">
+  <div class="splash-glow"></div>
+  <svg class="splash-cross" viewBox="0 0 80 140" fill="none">
+    <defs>
+      <linearGradient id="spl-gold" x1="40" y1="0" x2="40" y2="140" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#f5e08c"/>
+        <stop offset="35%" stop-color="#c9a84c"/>
+        <stop offset="100%" stop-color="#8a6d2e"/>
+      </linearGradient>
+    </defs>
+    <rect x="33" y="0" width="14" height="140" rx="2" fill="url(#spl-gold)"/>
+    <rect x="8" y="34" width="64" height="13" rx="2" fill="url(#spl-gold)"/>
+  </svg>
+  <div class="splash-title">BibleVerse</div>
+  <div class="splash-subtitle">The Modern Bible Interface</div>
+  <div class="splash-particles" id="splash-particles"></div>
+</div>
+<script>
+(function(){
+  var s=document.getElementById('splash'),pc=document.getElementById('splash-particles');
+  for(var i=0;i<28;i++){
+    var el=document.createElement('div');
+    el.className='splash-particle';
+    var sz=1.5+Math.random()*2;
+    el.style.width=sz+'px';el.style.height=sz+'px';
+    var a=Math.random()*Math.PI*2,r=18+Math.random()*40;
+    el.style.setProperty('--sx',Math.cos(a)*r+'px');
+    el.style.setProperty('--sy',Math.sin(a)*r+'px');
+    var ea=a+(Math.random()-0.5)*0.9,er=70+Math.random()*90;
+    el.style.setProperty('--ex',Math.cos(ea)*er+'px');
+    el.style.setProperty('--ey',(Math.sin(ea)*er-50)+'px');
+    el.style.setProperty('--d',(2.2+Math.random()*2)+'s');
+    el.style.setProperty('--t',(1.6+Math.random()*1.6)+'s');
+    pc.appendChild(el);
+  }
+  function dismiss(){
+    if(s.classList.contains('out'))return;
+    s.classList.add('out');
+    setTimeout(function(){s.remove()},1600);
+  }
+  setTimeout(dismiss,3800);
+  s.addEventListener('click',dismiss);
+})();
+</script>
+
+<!-- Sphere (full viewport — title, search, stats overlay the top) -->
+<div class="sphere-section">
+  <div class="hero-header">
+    <h1>BibleVerse <span style="font-weight:300;">— The Modern Bible Interface</span></h1>
+    <p class="sub">
+      Designed to enable efficient navigation of humanity's most consequential text.
+    </p>
+  </div>
+  <div class="sphere-stats-float">
+    <b id="stat-verses">—</b> verses &middot; <b id="stat-books">—</b> books &middot; <b id="stat-refs">—</b> cross-references
+  </div>
+  <button class="viewer-exit" id="viewer-exit">Exit viewer · Esc</button>
+  <div id="sphere-plot"></div>
+
+  <!-- Left panel: ChatGPT-style search -->
+  <div class="left-panel">
+    <div class="chat-panel">
+      <div class="chat-header">
+        <h4>Search</h4>
+        <div class="search-mode-toggle">
+          <button id="mode-verses" class="active">Verses</button>
+          <button id="mode-passages">Passages</button>
+        </div>
+        <div class="search-filter" id="search-filter">
+          <div class="sf-header" id="sf-header">
+            <span>Filter</span>
+            <span class="sf-badge" id="sf-badge"></span>
+            <svg class="sf-chevron" width="10" height="6" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>
+          </div>
+          <div class="sf-body" id="sf-body">
+            <div class="sf-testament" id="sf-ot">
+              <div class="sf-testament-header" data-testament="OT">
+                <span>Old Testament</span>
+                <svg class="sf-t-chevron" width="10" height="6" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>
+                <span class="sf-toggle-track"><input type="checkbox" checked></span>
+              </div>
+              <div class="sf-book-list" id="sf-ot-list"></div>
+            </div>
+            <div class="sf-testament" id="sf-nt">
+              <div class="sf-testament-header" data-testament="NT">
+                <span>New Testament</span>
+                <svg class="sf-t-chevron" width="10" height="6" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>
+                <span class="sf-toggle-track"><input type="checkbox" checked></span>
+              </div>
+              <div class="sf-book-list" id="sf-nt-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="chat-messages" id="search-results">
+        <div class="chat-empty" id="chat-empty">
+          <span id="chat-empty-text">Enter any text to find the most relevant verses or passages in the Bible.</span>
+        </div>
+        <div id="search-results-desc"></div>
+        <div id="search-results-list"></div>
+      </div>
+      <div class="chat-input-area">
+        <div class="chat-input-wrap">
+          <input type="text" id="verse-search" placeholder="Enter any text..." autocomplete="off" spellcheck="false">
+          <button id="search-clear" class="chat-clear-btn" style="display:none;">&#x2715;</button>
+          <button id="search-send" class="chat-send-btn" aria-label="Send">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 14V2M8 2L3 7M8 2l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+        <div id="search-status"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="right-panels">
+  <div class="sphere-panel sphere-legend">
+    <h4>Vertices — <span id="leg-verse-count">31,102</span> verses</h4>
+    <div class="legend-columns">
+      <div class="legend-col">
+        <label class="legend-col-toggle"><input type="checkbox" data-testament="OT" checked> ◆ Old Testament</label>
+        <div id="legend-ot-list"></div>
+      </div>
+      <div class="legend-col">
+        <label class="legend-col-toggle"><input type="checkbox" data-testament="NT" checked> ✚ New Testament</label>
+        <div id="legend-nt-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sphere-panel sphere-edge-panel">
+    <h4>Edges — <span id="leg-edge-count">—</span> cross-references</h4>
+    <div class="edge-legend">
+      <label class="legend-edge-row" id="toggle-intra">
+        <input type="checkbox" checked>
+        <span class="legend-edge-swatch" style="background:rgba(160,160,170,0.35)"></span>
+        <span>Intra-testament (OT↔OT, NT↔NT) — <b id="leg-intra-count">—</b></span>
+      </label>
+      <label class="legend-edge-row" id="toggle-inter">
+        <input type="checkbox" checked>
+        <span class="legend-edge-swatch" style="background:rgba(201,168,76,0.55)"></span>
+        <span>Inter-testament (OT↔NT) — <b id="leg-inter-count">—</b></span>
+      </label>
+    </div>
+  </div>
+  </div>
+
+  <div class="reader-cta" id="reader-cta">
+    <button class="reader-cta-btn" id="reader-cta-btn">
+      <svg class="reader-cta-icon" viewBox="0 0 24 24" fill="none" stroke="rgba(201,168,76,0.7)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
+        <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
+      </svg>
+      <div class="reader-cta-text">
+        <span class="reader-cta-title">Read the Bible with AI</span>
+        <span class="reader-cta-sub">Navigate any book, chapter, or verse — with an AI assistant alongside</span>
+      </div>
+      <svg class="reader-cta-arrow" viewBox="0 0 16 16" fill="none" stroke="rgba(232,228,220,0.5)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 8h10M9 4l4 4-4 4"/>
+      </svg>
+    </button>
+  </div>
+
+</div>
+
+<!-- Methodology -->
+<div class="methodology">
+  <h2 id="methodology-toggle">Methodology <span class="meth-chevron">▸</span></h2>
+  <div id="methodology-content" style="display:none;">
+
+  <div class="method-block">
+    <h3>Sentence embedding</h3>
+    <p>
+      Let \(\mathcal{V} = \{v_1, \ldots, v_{31102}\}\) denote the KJV verse corpus.
+      Each verse is encoded via a sentence transformer fine-tuned specifically on biblical text
+      (<a href="https://huggingface.co/odunola/sentence-transformers-bible-reference-final" target="_blank" style="color:#c9a84c">odunola/sentence-transformers-bible-reference-final</a>,
+      109M parameters, 12 transformer layers, MPNet architecture).
+      The model was contrastively trained on 929K biblical sentence pairs using cosine similarity loss,
+      learning to place theologically related passages close together in the embedding space:
+    </p>
+    $$\phi : \mathcal{V} \to \mathbb{R}^{768}, \qquad \phi(v_i) = \mathrm{MeanPool}\!\bigl(\mathrm{MPNet}(\mathrm{tokenize}(v_i))\bigr)$$
+    <p>
+      Unlike general-purpose encoders trained on web text, this model's latent space
+      separates verses by biblical meaning — prophecy, typology, thematic parallel,
+      and doctrinal correspondence — rather than surface vocabulary overlap.
+    </p>
+  </div>
+
+  <div class="method-block">
+    <h3>Dimensionality reduction</h3>
+    <p>
+      The embedding matrix \(\Phi \in \mathbb{R}^{31102 \times 768}\) is reduced to
+      3 dimensions via UMAP, which minimizes the fuzzy set cross-entropy between
+      high-dimensional affinities \(w_{ij}\) and low-dimensional affinities \(q_{ij}\):
+    </p>
+    $$\mathcal{L}_{\text{UMAP}} = \sum_{i \neq j} \left[ w_{ij} \ln \frac{w_{ij}}{q_{ij}} + (1 - w_{ij}) \ln \frac{1 - w_{ij}}{1 - q_{ij}} \right]$$
+    <p>
+      where \(w_{ij} = \exp\!\bigl(-({d(\phi_i, \phi_j) - \rho_i})/{\sigma_i}\bigr)\)
+      captures local metric structure in the ambient space, with
+      \(\texttt{n\_neighbors}=15\), \(\texttt{min\_dist}=0.1\), \(\texttt{metric}=\text{cosine}\).
+    </p>
+  </div>
+
+  <div class="method-block">
+    <h3>Spherical projection</h3>
+    <p>
+      The 3D UMAP coordinates \(\mathbf{x}_i \in \mathbb{R}^3\) are centered and
+      normalized onto the unit 2-sphere:
+    </p>
+    $$\hat{\mathbf{x}}_i = \frac{\mathbf{x}_i - \bar{\mathbf{x}}}{\|\mathbf{x}_i - \bar{\mathbf{x}}\|_2} \;\in\; S^2$$
+    <p>
+      This preserves angular relationships: semantically similar verses cluster
+      into regions on the sphere, while distant passages occupy opposite hemispheres.
+    </p>
+  </div>
+
+  <div class="method-block">
+    <h3>Cross-references</h3>
+    <p>
+      Arcs represent scholarly cross-references from the
+      <a href="https://www.openbible.info/labs/cross-references/" target="_blank" style="color:#c9a84c">openbible.info</a>
+      dataset (Christoph R&ouml;mhild, public domain). Each entry connects two
+      verses identified by biblical scholars as linked via quotation, allusion,
+      typological parallel, or prophecy&ndash;fulfillment, weighted by community
+      vote count \(n_{\text{votes}}\). The homepage slider filters arcs by
+      \(n_{\text{votes}} \geq \tau\), where \(\tau\) is user-selected.
+    </p>
+  </div>
+
+  <div class="method-block">
+    <h3>Semantic search</h3>
+    <p>
+      The search bar performs real-time semantic retrieval using the <em>same</em>
+      Bible-trained MPNet transformer that generates the sphere layout. The user's
+      query \(q\) is encoded to a 768-dimensional embedding \(\phi(q)\) via
+      <a href="https://huggingface.co/odunola/sentence-transformers-bible-reference-final" target="_blank" style="color:#c9a84c">ONNX Runtime Web</a>,
+      running the full 109M-parameter model directly in the browser (WASM backend).
+    </p>
+    <p>
+      Verse rankings are determined by cosine similarity in the embedding space:
+    </p>
+    $$\text{sim}(q, v_i) = \frac{\phi(q) \cdot \phi(v_i)}{\|\phi(q)\| \, \|\phi(v_i)\|} = \phi(q)^{\!\top} \hat\phi(v_i)$$
+    <p>
+      where \(\hat\phi(v_i)\) denotes the L2-normalised verse embedding (pre-computed and
+      shipped as a 23.9 MB uint8-quantised binary). Since both query and verse vectors are
+      normalised, the dot product is equivalent to cosine similarity. This is <em>not</em>
+      keyword matching — it captures theological and semantic proximity: a query like
+      <em>"I feel lost"</em> surfaces verses about wandering, despair, and seeking guidance,
+      even when no query terms appear verbatim.
+    </p>
+  </div>
+
+  <div class="method-block">
+    <h3>Arc geometry</h3>
+    <p>
+      For two sphere points \(\hat{\mathbf{x}}_i, \hat{\mathbf{x}}_j \in S^2\),
+      the arc midpoint is computed via normalized averaging and bowed outward
+      by a height proportional to angular separation:
+    </p>
+    $$\mathbf{m}_{ij} = \frac{\hat{\mathbf{x}}_i + \hat{\mathbf{x}}_j}{\|\hat{\mathbf{x}}_i + \hat{\mathbf{x}}_j\|} \cdot (1 + h), \qquad h = h_{\min} + (h_{\max} - h_{\min}) \cdot \frac{\theta_{ij}}{\pi}$$
+    <p>
+      where \(\theta_{ij} = \arccos(\hat{\mathbf{x}}_i \cdot \hat{\mathbf{x}}_j)\) is the
+      geodesic angular distance. This ensures short-range references hug the surface
+      while long-range references arc prominently outward.
+    </p>
+  </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('methodology-toggle').addEventListener('click', function() {
+  const content = document.getElementById('methodology-content');
+  const open = content.style.display !== 'none';
+  content.style.display = open ? 'none' : 'block';
+  this.classList.toggle('open', !open);
+});
+</script>
+
+<!-- Representative verses -->
+<div class="rep-verses">
+  <h2>Representative Verse per Book</h2>
+  <p class="rep-sub">
+    For each of the 66 books, the mean embedding of all its verses is computed.
+    The single verse closest to this centroid (by cosine similarity) is shown — the verse
+    that best represents the semantic center of the book.
+  </p>
+
+  <div class="rv-group">
+    <button class="rv-toggle" data-target="rv-ot-list">Old Testament <span class="rv-arrow">▸</span></button>
+    <div class="rv-search-wrap" id="rv-ot-search-wrap" style="display:none;">
+      <input type="text" class="rv-search" id="rv-ot-search" placeholder="Search OT books..." autocomplete="off" spellcheck="false">
+    </div>
+    <div class="rv-list" id="rv-ot-list" style="display:none;"></div>
+  </div>
+
+  <div class="rv-group">
+    <button class="rv-toggle" data-target="rv-nt-list">New Testament <span class="rv-arrow">▸</span></button>
+    <div class="rv-search-wrap" id="rv-nt-search-wrap" style="display:none;">
+      <input type="text" class="rv-search" id="rv-nt-search" placeholder="Search NT books..." autocomplete="off" spellcheck="false">
+    </div>
+    <div class="rv-list" id="rv-nt-list" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- Module cards -->
+<div class="below-fold">
+  <main>
+    <div class="section-label">Explore</div>
+
+    <div class="module-grid">
+      <a href="map.html" class="module-card">
+        <div class="module-num">01</div>
+        <h2>Semantic Map</h2>
+        <p>
+          Every verse embedded and projected into 2D. A latent-space
+          atlas revealing which passages live near each other in
+          meaning-space, regardless of canonical position.
+        </p>
+        <div class="module-enter">Enter &rarr;</div>
+      </a>
+      <a href="network.html" class="module-card">
+        <div class="module-num">02</div>
+        <h2>Entity Network</h2>
+        <p>
+          People, places, and concepts extracted and connected by
+          co-occurrence. A force-directed graph exposing the
+          relational skeleton of the text.
+        </p>
+        <div class="module-enter">Enter &rarr;</div>
+      </a>
+      <a href="complexity.html" class="module-card">
+        <div class="module-num">03</div>
+        <h2>Complexity</h2>
+        <p>
+          Shannon entropy, compression ratios, lexical diversity,
+          and cross-book similarity. The quantitative fingerprint of
+          each book, compared across genres.
+        </p>
+        <div class="module-enter">Enter &rarr;</div>
+      </a>
+    </div>
+
+    <div class="manifesto">
+      <h3>What is this</h3>
+      <p>
+        This project applies standard NLP and information-theory methods to
+        the King James Bible &mdash; a public-domain English translation of
+        historically significant texts. The goal is structural: to surface
+        patterns, clusters, and relationships that are difficult to perceive
+        through linear reading alone. Every visualization is paired with the
+        mathematics behind it. Explore the text, then decide what you think.
+      </p>
+    </div>
+  </main>
+
+  <footer class="hero-footer">
+    King James Version (1769) + Berean Standard Bible &middot; Public Domain &middot; Embeddings: Bible-trained MPNet (768-dim) &middot; Visualization: Plotly + D3
+  </footer>
+</div>
+
+<div class="passage-modal-overlay" id="passage-modal-overlay">
+  <div class="passage-modal">
+    <button class="passage-modal-close" id="passage-modal-close">&#x2715;</button>
+    <div class="passage-modal-ref" id="passage-modal-ref"></div>
+    <div class="passage-modal-title" id="passage-modal-title"></div>
+    <div class="pm-translation-toggle">
+      <button id="pm-kjv" class="active">Classic (King James, 1769)</button>
+      <button id="pm-bsb">Modern (Berean Standard)</button>
+    </div>
+    <div class="passage-modal-body" id="passage-modal-body"></div>
+    <div class="passage-modal-body" id="passage-modal-body-bsb" style="display:none;"></div>
+    <button class="pm-read-context" id="pm-read-context">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+      Read in context
+    </button>
+  </div>
+</div>
+
+<div class="reader-overlay" id="reader-overlay">
+  <div class="reader-topbar">
+    <div class="reader-topbar-left">
+      <button class="reader-close" id="reader-close">&#x2715;</button>
+      <div class="cd-wrap" id="cd-book">
+        <button class="cd-trigger" id="cd-book-trigger">
+          <span>Genesis</span>
+          <svg class="cd-chev" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+        </button>
+        <div class="cd-menu" id="cd-book-menu">
+          <div class="cd-menu-search"><input type="text" placeholder="Search books..." id="cd-book-search" autocomplete="off" spellcheck="false"></div>
+          <div id="cd-book-list"></div>
+        </div>
+      </div>
+      <div class="reader-chapter-nav">
+        <button id="reader-prev">&#x2039;</button>
+        <div class="cd-wrap" id="cd-chapter">
+          <button class="cd-trigger" id="cd-chapter-trigger">
+            <span>Chapter 1</span>
+            <svg class="cd-chev" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+          </button>
+          <div class="cd-menu" id="cd-chapter-menu"></div>
+        </div>
+        <button id="reader-next">&#x203A;</button>
+      </div>
+    </div>
+    <div class="reader-topbar-right">
+      <div class="reader-tl-toggle">
+        <button id="reader-kjv" class="active">Classic (King James, 1769)</button>
+        <button id="reader-bsb">Modern (Berean Standard)</button>
+      </div>
+    </div>
+  </div>
+  <div class="reader-body">
+    <div class="reader-content" id="reader-content">
+      <div class="reader-inner" id="reader-inner"></div>
+    </div>
+    <div class="reader-chat" id="reader-chat">
+      <div class="reader-chat-header">
+        <div class="cd-wrap" id="cd-model">
+          <button class="cd-trigger" id="cd-model-trigger">
+            <span>Phi 3.5 Mini</span>
+            <svg class="cd-chev" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+          </button>
+          <div class="cd-menu" id="cd-model-menu"></div>
+        </div>
+        <button id="reader-chat-settings-btn" title="Settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+      </div>
+      <div class="reader-chat-model-loading" id="reader-chat-model-loading">
+        <div class="rcml-inner">
+          <div class="rcml-dots"><span></span><span></span><span></span></div>
+          <div class="rcml-text" id="rcml-text">Loading model</div>
+          <div class="rcml-bar-wrap"><div class="rcml-bar" id="rcml-bar"></div></div>
+          <div class="rcml-sub">Loading your own personal model locally — which takes a few seconds — so that your conversation is secure.</div>
+        </div>
+      </div>
+      <div class="reader-chat-settings" id="reader-chat-settings" style="display:none;">
+        <div class="reader-chat-settings-msg">
+          Optional: use your own <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">OpenAI API key</a> for faster responses.
+        </div>
+        <div class="reader-chat-key-wrap">
+          <input type="password" id="reader-chat-api-key" placeholder="sk-...">
+          <button id="reader-chat-key-save">Save</button>
+        </div>
+        <div class="reader-chat-settings-hint">Without a key, AI runs locally in your browser via WebGPU.</div>
+      </div>
+      <div class="reader-chat-messages" id="reader-chat-messages">
+        <div class="reader-chat-empty">Ask anything about the text you're reading.</div>
+      </div>
+      <div class="reader-chat-input-wrap">
+        <textarea id="reader-chat-input" placeholder="Ask a question..." rows="1"></textarea>
+        <button id="reader-chat-send" title="Send">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+        </button>
+      </div>
+      <div class="reader-chat-disclaimer">AI runs locally in your browser. Your messages stay on your device.</div>
+    </div>
+  </div>
+</div>
+
+<script src="js/common.js"></script>
+<script src="js/hero.js"></script>
+</body>
+</html>

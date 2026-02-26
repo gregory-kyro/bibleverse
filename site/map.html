@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Semantic Map | The Bible, Mapped</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+</head>
+<body>
+
+<header>
+  <nav>
+    <a href="index.html" class="nav-brand">The Bible, <span>Mapped</span></a>
+    <ul class="nav-links">
+      <li><a href="map.html" class="active">Map</a></li>
+      <li><a href="network.html">Network</a></li>
+      <li><a href="complexity.html">Complexity</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main>
+  <div class="page-header">
+    <h1>Semantic Map</h1>
+    <p>
+      Every verse encoded as a 384-dimensional vector, then projected to 2D via UMAP.
+      Proximity in this space reflects semantic similarity — not canonical order.
+    </p>
+  </div>
+
+  <div class="controls">
+    <div class="control-group">
+      <label for="color-mode">Color by</label>
+      <select id="color-mode">
+        <option value="genre">Genre</option>
+        <option value="testament">Testament</option>
+        <option value="book">Book (sequential)</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label for="filter-testament">Testament</label>
+      <select id="filter-testament">
+        <option value="all">All</option>
+        <option value="OT">Old Testament</option>
+        <option value="NT">New Testament</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label for="filter-genre">Genre</label>
+      <select id="filter-genre">
+        <option value="all">All</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label for="point-size">Size</label>
+      <input type="range" id="point-size" min="1" max="8" value="3" step="0.5">
+    </div>
+    <div class="control-group">
+      <label for="opacity-ctrl">Opacity</label>
+      <input type="range" id="opacity-ctrl" min="0.1" max="1" value="0.6" step="0.05">
+    </div>
+  </div>
+
+  <div id="legend" class="legend"></div>
+
+  <div class="viz-container viz-split">
+    <div class="viz-main" id="scatter-container">
+      <div class="loading">Loading semantic map</div>
+    </div>
+    <div class="viz-panel" id="detail-panel">
+      <h3>Selected Verse</h3>
+      <p class="dim small" id="panel-hint">Click any point on the map to see the verse and its semantic neighbors.</p>
+      <div id="selected-verse"></div>
+      <div id="neighbors-list" style="margin-top:1rem;"></div>
+    </div>
+  </div>
+
+  <div class="info-grid">
+    <div class="info-box">
+      <h3>What you're seeing</h3>
+      <p>
+        Each dot is one of ~31,000 KJV verses. The position is computed by
+        encoding the verse text with a sentence transformer (all-MiniLM-L6-v2)
+        to produce a 384-dimensional embedding vector, then reducing to 2D
+        using UMAP (n_neighbors=15, min_dist=0.1, cosine metric). Points
+        that are close together have similar semantic content — even if they
+        come from different books, testaments, or genres.
+      </p>
+    </div>
+    <div class="info-box">
+      <h3>Try this</h3>
+      <ul>
+        <li>Switch color to "Book (sequential)" and look for books that are scattered vs. tightly clustered — high scatter suggests thematic breadth.</li>
+        <li>Filter to "Wisdom" genre and observe how Proverbs, Ecclesiastes, and Job occupy different regions despite being in the same genre.</li>
+        <li>Click a verse in a dense cluster and check its neighbors — are they from the same book, or do they cross canonical boundaries?</li>
+      </ul>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <p>Text: King James Version (1769), public domain. Embeddings: all-MiniLM-L6-v2. Reduction: UMAP.</p>
+</footer>
+
+<script src="js/common.js"></script>
+<script src="js/map.js"></script>
+</body>
+</html>

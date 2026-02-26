@@ -1,0 +1,13 @@
+[project]
+name = "bible-mapped"
+version = "0.1.0"
+description = "Computational structure of the King James Bible — embeddings, networks, information theory."
+requires-python = ">=3.12"
+dependencies = [
+    "sentence-transformers>=2.2.0",
+    "umap-learn>=0.5.0",
+    "numpy>=1.24.0",
+]
+
+[project.scripts]
+bible-mapped = "run_pipeline:main"

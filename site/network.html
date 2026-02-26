@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Entity Network | The Bible, Mapped</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+
+<header>
+  <nav>
+    <a href="index.html" class="nav-brand">The Bible, <span>Mapped</span></a>
+    <ul class="nav-links">
+      <li><a href="map.html">Map</a></li>
+      <li><a href="network.html" class="active">Network</a></li>
+      <li><a href="complexity.html">Complexity</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main>
+  <div class="page-header">
+    <h1>Entity Network</h1>
+    <p>
+      People, places, groups, and concepts extracted from the text and linked
+      by chapter-level co-occurrence. Edge weight reflects how often two
+      entities appear together.
+    </p>
+  </div>
+
+  <div class="controls">
+    <div class="control-group">
+      <label for="type-filter">Entity type</label>
+      <select id="type-filter">
+        <option value="all">All</option>
+        <option value="person">People</option>
+        <option value="place">Places</option>
+        <option value="group">Groups</option>
+        <option value="concept">Concepts</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label for="min-weight">Min edge weight</label>
+      <input type="range" id="min-weight" min="1" max="30" value="3" step="1">
+      <span id="min-weight-val" class="mono small dim">3</span>
+    </div>
+    <div class="control-group">
+      <label for="min-count">Min mentions</label>
+      <input type="range" id="min-count" min="3" max="100" value="10" step="1">
+      <span id="min-count-val" class="mono small dim">10</span>
+    </div>
+    <div class="control-group">
+      <label for="charge-strength">Repulsion</label>
+      <input type="range" id="charge-strength" min="-500" max="-30" value="-150" step="10">
+    </div>
+  </div>
+
+  <div class="legend" id="legend">
+    <div class="legend-item"><span class="legend-swatch" style="background:#c9a84c"></span>Person</div>
+    <div class="legend-item"><span class="legend-swatch" style="background:#5b9bd5"></span>Place</div>
+    <div class="legend-item"><span class="legend-swatch" style="background:#e07a5f"></span>Group</div>
+    <div class="legend-item"><span class="legend-swatch" style="background:#8b8b9e"></span>Concept</div>
+  </div>
+
+  <div class="viz-container viz-split">
+    <div class="viz-main" id="graph-container">
+      <div class="loading">Loading network data</div>
+    </div>
+    <div class="viz-panel" id="detail-panel">
+      <h3>Selected Entity</h3>
+      <p class="dim small" id="panel-hint">Click a node to see details and connections.</p>
+      <div id="entity-detail"></div>
+    </div>
+  </div>
+  <div class="tooltip" id="graph-tooltip"></div>
+
+  <div class="info-grid">
+    <div class="info-box">
+      <h3>What you're seeing</h3>
+      <p>
+        Nodes represent entities (people, places, groups) extracted via
+        dictionary matching against a curated list of ~250 biblical names,
+        plus concept keywords from per-book TF-IDF. An edge connects two
+        entities if they appear in the same chapter; edge weight is the
+        number of chapters in which they co-occur. The layout is a D3
+        force-directed simulation: connected nodes attract, unconnected
+        nodes repel. Node size scales with total mention count.
+      </p>
+    </div>
+    <div class="info-box">
+      <h3>Try this</h3>
+      <ul>
+        <li>Filter to "People" and raise the minimum edge weight to 10+ to see the core relational skeleton: God–Moses–Aaron–Pharaoh, Jesus–Peter–John.</li>
+        <li>Filter to "Places" and notice how Jerusalem dominates as a hub connecting both testaments.</li>
+        <li>Lower the minimum mentions threshold and watch concept nodes appear, bridging entity clusters.</li>
+      </ul>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <p>Entities: curated dictionary + TF-IDF keywords. Layout: D3 force simulation. Text: KJV, public domain.</p>
+</footer>
+
+<script src="js/common.js"></script>
+<script src="js/network.js"></script>
+</body>
+</html>

@@ -1,0 +1,1583 @@
+/**
+ * Homepage 3D sphere — 31k verses on S² via UMAP-3D projection.
+ * Color: spectral gradient by canonical book (1–66).
+ * OT = diamond, NT = cross. Edges: intra = gray, inter = gold.
+ * Semantic search (Bible-trained MPNet via ONNX), per-book toggles,
+ * vote slider, zoom buttons.
+ */
+
+(async function () {
+  const data = await loadJSON('sphere.json?v=' + Date.now());
+  const pts = data.points;
+  const stats = data.stats;
+
+  // BSB translations loaded lazily (separate file to keep sphere.json lean)
+  let bsbVerses = null;
+  let bsbLoading = false;
+  async function loadBsb() {
+    if (bsbVerses) return bsbVerses;
+    if (bsbLoading) { while (!bsbVerses) await new Promise(r => setTimeout(r, 50)); return bsbVerses; }
+    bsbLoading = true;
+    try { bsbVerses = await loadJSON('bsb_verses.json?v=' + Date.now()); }
+    catch (e) { console.warn('BSB translations not available', e); bsbVerses = []; }
+    return bsbVerses;
+  }
+
+  const INTRA_COLOR = 'rgba(140,140,150,0.012)';
+  const INTER_COLOR = 'rgba(201,168,76,0.02)';
+  const ARC_WIDTH = 0.4;
+
+  const bookScale = [
+    [0.00, '#e6194b'], [0.12, '#f58231'], [0.24, '#ffe119'],
+    [0.36, '#bfef45'], [0.48, '#3cb44b'], [0.60, '#42d4f4'],
+    [0.72, '#4363d8'], [0.84, '#911eb4'], [1.00, '#f032e6'],
+  ];
+
+  function bookColor(num) {
+    const t = (num - 1) / 65;
+    for (let i = 0; i < bookScale.length - 1; i++) {
+      const [t0, c0] = bookScale[i];
+      const [t1, c1] = bookScale[i + 1];
+      if (t >= t0 && t <= t1) {
+        const f = (t - t0) / (t1 - t0);
+        const r0 = parseInt(c0.slice(1, 3), 16), g0 = parseInt(c0.slice(3, 5), 16), b0 = parseInt(c0.slice(5, 7), 16);
+        const r1 = parseInt(c1.slice(1, 3), 16), g1 = parseInt(c1.slice(3, 5), 16), b1 = parseInt(c1.slice(5, 7), 16);
+        return '#' + [Math.round(r0 + (r1 - r0) * f), Math.round(g0 + (g1 - g0) * f), Math.round(b0 + (b1 - b0) * f)]
+          .map(v => v.toString(16).padStart(2, '0')).join('');
+      }
+    }
+    return bookScale[bookScale.length - 1][1];
+  }
+
+  const bookNames = {}, bookTestament = {};
+  for (const p of pts) {
+    if (!bookNames[p.book_num]) { bookNames[p.book_num] = p.book; bookTestament[p.book_num] = p.testament; }
+  }
+  const allBookNums = Object.keys(bookNames).map(Number).sort((a, b) => a - b);
+  const visibleBooks = new Set(allBookNums);
+
+  const ot = { x: [], y: [], z: [], text: [], bookNum: [] };
+  const nt = { x: [], y: [], z: [], text: [], bookNum: [] };
+
+  function wrapText(str, maxLen) {
+    const words = str.split(' ');
+    let line = '', lines = [];
+    for (const w of words) {
+      if (line && (line.length + w.length + 1) > maxLen) { lines.push(line); line = w; }
+      else { line = line ? line + ' ' + w : w; }
+    }
+    if (line) lines.push(line);
+    return lines.join('<br>');
+  }
+
+  for (const p of pts) {
+    const bucket = p.testament === 'OT' ? ot : nt;
+    bucket.x.push(p.sx); bucket.y.push(p.sy); bucket.z.push(p.sz);
+    bucket.bookNum.push(p.book_num);
+    bucket.text.push(`<b>${p.ref}</b><br><i>${wrapText(p.text, 60)}</i>`);
+  }
+
+  const traces = [];
+
+  // Semi-transparent inner sphere surface
+  {
+    const N = 32;
+    const sx = [], sy = [], sz = [], si = [], sj = [], sk = [];
+    const R = 0.97;
+    for (let lat = 0; lat <= N; lat++) {
+      const theta = Math.PI * lat / N;
+      for (let lon = 0; lon <= N * 2; lon++) {
+        const phi = 2 * Math.PI * lon / (N * 2);
+        sx.push(R * Math.sin(theta) * Math.cos(phi));
+        sy.push(R * Math.sin(theta) * Math.sin(phi));
+        sz.push(R * Math.cos(theta));
+      }
+    }
+    const cols = N * 2 + 1;
+    for (let lat = 0; lat < N; lat++) {
+      for (let lon = 0; lon < N * 2; lon++) {
+        const a = lat * cols + lon, b = a + 1, c = a + cols, d = c + 1;
+        si.push(a); sj.push(b); sk.push(c);
+        si.push(b); sj.push(d); sk.push(c);
+      }
+    }
+    traces.push({
+      type: 'mesh3d', x: sx, y: sy, z: sz, i: si, j: sj, k: sk,
+      color: '#080810', opacity: 0.55, flatshading: true,
+      lighting: { ambient: 0.6, diffuse: 0.3, specular: 0.05, roughness: 0.9 },
+      hoverinfo: 'skip', showlegend: false,
+    });
+  }
+
+  const voteBins = data.vote_bins;
+  const VOTE_THRESHOLDS = voteBins.map(b => b.vote_min);
+
+  const arcTraceStart = traces.length;
+  for (const bin of voteBins) {
+    const vis = bin.vote_min >= 30;
+    traces.push({ type: 'scatter3d', mode: 'lines', x: bin.intra.x, y: bin.intra.y, z: bin.intra.z,
+      line: { color: INTRA_COLOR, width: ARC_WIDTH }, hoverinfo: 'skip', showlegend: false, visible: vis });
+    traces.push({ type: 'scatter3d', mode: 'lines', x: bin.inter.x, y: bin.inter.y, z: bin.inter.z,
+      line: { color: INTER_COLOR, width: ARC_WIDTH }, hoverinfo: 'skip', showlegend: false, visible: vis });
+  }
+  const arcTraceEnd = traces.length;
+
+  const hoverCfg = { bgcolor: '#0a0a14', bordercolor: '#2a2a3a',
+    font: { family: 'Inter, sans-serif', size: 11, color: '#e8e4dc' } };
+
+  const OT_SIZE = 4, NT_SIZE = 5;
+
+  const otTraceIdx = traces.length;
+  traces.push({ type: 'scatter3d', mode: 'markers', x: ot.x, y: ot.y, z: ot.z,
+    text: ot.text, hoverinfo: 'skip', showlegend: false,
+    marker: { size: OT_SIZE, symbol: 'diamond', color: ot.bookNum, colorscale: bookScale,
+      cmin: 1, cmax: 66, opacity: ot.bookNum.map(() => 0.85), showscale: false },
+    hoverlabel: hoverCfg });
+
+  const ntTraceIdx = traces.length;
+  traces.push({ type: 'scatter3d', mode: 'markers', x: nt.x, y: nt.y, z: nt.z,
+    text: nt.text, hoverinfo: 'skip', showlegend: false,
+    marker: { size: NT_SIZE, symbol: 'cross', color: nt.bookNum, colorscale: bookScale,
+      cmin: 1, cmax: 66, opacity: nt.bookNum.map(() => 0.85), showscale: false },
+    hoverlabel: hoverCfg });
+
+  // Flat index of all points for nearest-neighbor hover
+  const allPts3D = [];
+  for (let i = 0; i < ot.x.length; i++) {
+    allPts3D.push({ x: ot.x[i], y: ot.y[i], z: ot.z[i], text: ot.text[i] });
+  }
+  for (let i = 0; i < nt.x.length; i++) {
+    allPts3D.push({ x: nt.x[i], y: nt.y[i], z: nt.z[i], text: nt.text[i] });
+  }
+
+  const axisRange = [-1.15, 1.15];
+  const axisCfg = { showgrid: false, zeroline: false, showticklabels: false,
+    title: '', showspikes: false, showbackground: false,
+    range: axisRange, autorange: false };
+
+  const layout = {
+    paper_bgcolor: '#000', plot_bgcolor: '#000',
+    font: { family: 'Inter, system-ui, sans-serif', color: '#e8e4dc' },
+    scene: { xaxis: axisCfg, yaxis: axisCfg, zaxis: axisCfg,
+      aspectmode: 'cube', bgcolor: '#000', dragmode: 'orbit',
+      camera: { eye: { x: 1.45, y: 1.45, z: 0.6 }, up: { x: 0, y: 0, z: 1 } } },
+    showlegend: false, margin: { l: 0, r: 0, t: 0, b: 0 }, autosize: true,
+  };
+
+  const plotEl = document.getElementById('sphere-plot');
+  Plotly.newPlot(plotEl, traces, layout, {
+    responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false,
+  });
+
+  // Block Plotly from handling wheel events — let browser scroll natively
+  plotEl.addEventListener('wheel', function (e) {
+    e.stopImmediatePropagation();
+  }, { capture: true });
+
+  // --- Custom nearest-point hover tooltip ---
+  const hoverTip = document.createElement('div');
+  hoverTip.className = 'sphere-hover-tip';
+  hoverTip.style.cssText = 'position:absolute;display:none;pointer-events:none;z-index:50;' +
+    'background:rgba(10,10,20,0.92);border:1px solid #2a2a3a;border-radius:6px;padding:8px 12px;' +
+    'font:11px/1.5 Inter,sans-serif;color:#e8e4dc;max-width:320px;white-space:normal;';
+  plotEl.style.position = 'relative';
+  plotEl.appendChild(hoverTip);
+
+  function projectPoint(px, py, pz) {
+    try {
+      const glplot = plotEl._fullLayout.scene._scene.glplot;
+      const m = glplot.camera.matrix;
+      const clipW = m[3] * px + m[7] * py + m[11] * pz + m[15];
+      if (clipW <= 0) return null;
+      const ndcX = (m[0] * px + m[4] * py + m[8] * pz + m[12]) / clipW;
+      const ndcY = (m[1] * px + m[5] * py + m[9] * pz + m[13]) / clipW;
+      const canvas = glplot.canvas || plotEl.querySelector('canvas');
+      const dpr = window.devicePixelRatio || 1;
+      const canvasRect = canvas.getBoundingClientRect();
+      const plotRect = plotEl.getBoundingClientRect();
+      const offX = canvasRect.left - plotRect.left;
+      const offY = canvasRect.top - plotRect.top;
+      return [offX + (ndcX + 1) * 0.5 * canvasRect.width,
+              offY + (1 - ndcY) * 0.5 * canvasRect.height];
+    } catch (_) { return null; }
+  }
+
+  // --- Double-click to smoothly zoom into a region ---
+  const DEFAULT_EYE = { x: 1.45, y: 1.45, z: 0.6 };
+  let zoomAnimating = false;
+
+  function animateCamera(fromEye, toEye, duration, onDone) {
+    zoomAnimating = true;
+    const start = performance.now();
+    function ease(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+    function step(now) {
+      const t = Math.min((now - start) / duration, 1);
+      const e = ease(t);
+      const eye = {
+        x: fromEye.x + (toEye.x - fromEye.x) * e,
+        y: fromEye.y + (toEye.y - fromEye.y) * e,
+        z: fromEye.z + (toEye.z - fromEye.z) * e,
+      };
+      Plotly.relayout(plotEl, { 'scene.camera.eye': eye });
+      if (t < 1) { requestAnimationFrame(step); }
+      else {
+        zoomAnimating = false;
+        radius = Math.sqrt(toEye.x * toEye.x + toEye.y * toEye.y);
+        camZ = toEye.z;
+        angle = Math.atan2(toEye.y, toEye.x);
+        if (onDone) onDone();
+      }
+    }
+    requestAnimationFrame(step);
+  }
+
+  let lastClickedPoint = null;
+  let lastHoveredPoint = null;
+  let viewerMode = false;
+  const sphereSection = document.querySelector('.sphere-section');
+  const viewerExitBtn = document.getElementById('viewer-exit');
+
+  function getEye() {
+    try { return plotEl._fullLayout.scene._scene.getCamera().eye; }
+    catch (_) { return DEFAULT_EYE; }
+  }
+
+  // Nearest-point hover via mousemove + 3D-to-2D projection
+  let hoverRafId = null;
+  plotEl.addEventListener('mousemove', function (e) {
+    if (hoverRafId) return;
+    hoverRafId = requestAnimationFrame(() => {
+      hoverRafId = null;
+      const rect = plotEl.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+
+      // Only activate when cursor is within the visual sphere circle
+      const cx = rect.width / 2, cy = rect.height / 2;
+      const sphereR = Math.min(rect.width, rect.height) * 0.26;
+      const dCenter = Math.sqrt((mx - cx) ** 2 + (my - cy) ** 2);
+      if (dCenter > sphereR) {
+        hoverTip.style.display = 'none';
+        return;
+      }
+
+      const eye = getEye();
+      let nearest = null, minDist = Infinity;
+      for (const pt of allPts3D) {
+        if (pt.x * eye.x + pt.y * eye.y + pt.z * eye.z <= 0) continue;
+        const sp = projectPoint(pt.x, pt.y, pt.z);
+        if (!sp) continue;
+        const d2 = (sp[0] - mx) ** 2 + (sp[1] - my) ** 2;
+        if (d2 < minDist) { minDist = d2; nearest = pt; }
+      }
+
+      if (nearest) {
+        hoverTip.innerHTML = nearest.text;
+        const sp = projectPoint(nearest.x, nearest.y, nearest.z);
+        if (sp) {
+          hoverTip.style.left = (sp[0] + 14) + 'px';
+          hoverTip.style.top = (sp[1] - 14) + 'px';
+        }
+        hoverTip.style.display = 'block';
+        lastHoveredPoint = { x: nearest.x, y: nearest.y, z: nearest.z };
+      } else {
+        hoverTip.style.display = 'none';
+      }
+    });
+  });
+
+  plotEl.addEventListener('mouseleave', () => { hoverTip.style.display = 'none'; });
+
+  plotEl.addEventListener('click', function () {
+    if (lastHoveredPoint) lastClickedPoint = lastHoveredPoint;
+  });
+
+  function enterViewer(pt) {
+    if (zoomAnimating || viewerMode) return;
+    viewerMode = true;
+    sphereSection.classList.add('viewer-mode');
+    spinning = false;
+
+    const sx = pt.x, sy = pt.y, sz = pt.z;
+    const norm = Math.sqrt(sx * sx + sy * sy + sz * sz) || 1;
+    const d = 0.9;
+    const toEye = { x: sx / norm * d, y: sy / norm * d, z: sz / norm * d };
+    let fromEye;
+    try { fromEye = { ...plotEl._fullLayout.scene._scene.getCamera().eye }; }
+    catch (_) { fromEye = { ...DEFAULT_EYE }; }
+    animateCamera(fromEye, toEye, 900);
+  }
+
+  function exitViewer() {
+    if (!viewerMode) return;
+    viewerMode = false;
+    sphereSection.classList.remove('viewer-mode');
+    let fromEye;
+    try { fromEye = { ...plotEl._fullLayout.scene._scene.getCamera().eye }; }
+    catch (_) { fromEye = { ...DEFAULT_EYE }; }
+    animateCamera(fromEye, DEFAULT_EYE, 700, () => {
+      rotDir = 1;
+      startRotation();
+    });
+  }
+
+  plotEl.addEventListener('dblclick', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const target = lastHoveredPoint || lastClickedPoint;
+    if (target) enterViewer(target);
+  });
+
+  viewerExitBtn.addEventListener('click', exitViewer);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && viewerMode) exitViewer();
+  });
+
+  // --- Book filter (integrated into legend items) ---
+  // Hide points by replacing coordinates with NaN to avoid corrupting the colorscale
+  const otOrigX = ot.x.slice(), otOrigY = ot.y.slice(), otOrigZ = ot.z.slice();
+  const ntOrigX = nt.x.slice(), ntOrigY = nt.y.slice(), ntOrigZ = nt.z.slice();
+
+  function applyBookFilter() {
+    const ox = otOrigX.map((v, i) => visibleBooks.has(ot.bookNum[i]) ? v : NaN);
+    const oy = otOrigY.map((v, i) => visibleBooks.has(ot.bookNum[i]) ? v : NaN);
+    const oz = otOrigZ.map((v, i) => visibleBooks.has(ot.bookNum[i]) ? v : NaN);
+    Plotly.restyle(plotEl, { x: [ox], y: [oy], z: [oz] }, [otTraceIdx]);
+
+    const nx = ntOrigX.map((v, i) => visibleBooks.has(nt.bookNum[i]) ? v : NaN);
+    const ny = ntOrigY.map((v, i) => visibleBooks.has(nt.bookNum[i]) ? v : NaN);
+    const nz = ntOrigZ.map((v, i) => visibleBooks.has(nt.bookNum[i]) ? v : NaN);
+    Plotly.restyle(plotEl, { x: [nx], y: [ny], z: [nz] }, [ntTraceIdx]);
+  }
+
+  // Build legend with inline toggles — each book item is clickable
+  const legOT = document.getElementById('legend-ot-list');
+  const legNT = document.getElementById('legend-nt-list');
+  const bookRows = {};
+
+  for (const bn of allBookNums) {
+    const col = bookTestament[bn] === 'OT' ? legOT : legNT;
+    const row = document.createElement('label');
+    row.className = 'legend-item';
+    row.innerHTML = `<input type="checkbox" data-book="${bn}" checked><span class="legend-swatch" style="background:${bookColor(bn)}"></span><span>${bookNames[bn]}</span>`;
+    col.appendChild(row);
+    bookRows[bn] = row;
+    row.querySelector('input').addEventListener('change', (e) => {
+      if (e.target.checked) { visibleBooks.add(bn); row.classList.remove('off'); }
+      else { visibleBooks.delete(bn); row.classList.add('off'); }
+      const test = bookTestament[bn];
+      const anyOn = allBookNums.filter(n => bookTestament[n] === test).some(n => visibleBooks.has(n));
+      document.querySelector(`.legend-col-toggle input[data-testament="${test}"]`).checked = anyOn;
+      applyBookFilter();
+    });
+  }
+
+  // Testament master toggles
+  document.querySelectorAll('.legend-col-toggle input[data-testament]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const test = cb.dataset.testament;
+      const checked = cb.checked;
+      for (const bn of allBookNums) {
+        if (bookTestament[bn] !== test) continue;
+        if (checked) visibleBooks.add(bn); else visibleBooks.delete(bn);
+        bookRows[bn].querySelector('input').checked = checked;
+        bookRows[bn].classList.toggle('off', !checked);
+      }
+      applyBookFilter();
+    });
+  });
+
+  // --- Default to 100 minimum votes ---
+  const MIN_VOTES_DEFAULT = 100;
+  {
+    const visibility = traces.map((_, i) => {
+      if (i >= arcTraceStart && i < arcTraceEnd) {
+        return voteBins[Math.floor((i - arcTraceStart) / 2)].vote_min >= MIN_VOTES_DEFAULT;
+      }
+      return true;
+    });
+    Plotly.restyle(plotEl, { visible: visibility });
+
+  }
+
+  // Stats
+  document.getElementById('stat-verses').textContent = stats.total_verses.toLocaleString();
+  document.getElementById('stat-books').textContent = stats.books;
+  document.getElementById('stat-refs').textContent = stats.arcs_in_dataset.toLocaleString();
+  document.getElementById('leg-verse-count').textContent = stats.total_verses.toLocaleString();
+  document.getElementById('leg-edge-count').textContent = stats.arcs_in_dataset.toLocaleString();
+  document.getElementById('leg-intra-count').textContent = (stats.dataset_intra || 0).toLocaleString();
+  document.getElementById('leg-inter-count').textContent = (stats.dataset_inter || 0).toLocaleString();
+
+  // --- Edge type toggles (intra / inter) ---
+  let showIntra = true, showInter = true;
+  const toggleIntraRow = document.getElementById('toggle-intra');
+  const toggleInterRow = document.getElementById('toggle-inter');
+
+  function applyEdgeFilter() {
+    const updates = {};
+    for (let i = arcTraceStart; i < arcTraceEnd; i++) {
+      const binIdx = Math.floor((i - arcTraceStart) / 2);
+      const isIntra = (i - arcTraceStart) % 2 === 0;
+      const meetsVotes = voteBins[binIdx].vote_min >= MIN_VOTES_DEFAULT;
+      const typeVisible = isIntra ? showIntra : showInter;
+      updates[i] = meetsVotes && typeVisible;
+    }
+    const visibility = traces.map((_, i) => updates[i] !== undefined ? updates[i] : undefined);
+    const indices = [];
+    const vals = [];
+    for (let i = arcTraceStart; i < arcTraceEnd; i++) {
+      indices.push(i);
+      vals.push(updates[i]);
+    }
+    Plotly.restyle(plotEl, { visible: vals }, indices);
+  }
+
+  toggleIntraRow.querySelector('input').addEventListener('change', function () {
+    showIntra = this.checked;
+    toggleIntraRow.classList.toggle('off', !showIntra);
+    applyEdgeFilter();
+  });
+
+  toggleInterRow.querySelector('input').addEventListener('change', function () {
+    showInter = this.checked;
+    toggleInterRow.classList.toggle('off', !showInter);
+    applyEdgeFilter();
+  });
+
+  // --- Semantic search (Bible-trained MPNet via ONNX in browser) ---
+  const SEARCH_DIM = 768;
+  const searchInput = document.getElementById('verse-search');
+  const searchStatus = document.getElementById('search-status');
+  const searchClear = document.getElementById('search-clear');
+  const searchResults = document.getElementById('search-results');
+  const searchDesc = document.getElementById('search-results-desc');
+  const searchList = document.getElementById('search-results-list');
+  const chatEmpty = document.getElementById('chat-empty');
+  const chatEmptyText = document.getElementById('chat-empty-text');
+  const highlightTraceIdx = traces.length;
+
+  Plotly.addTraces(plotEl, [
+    { type: 'scatter3d', mode: 'markers',
+      x: [], y: [], z: [], text: [], hoverinfo: 'text', showlegend: false,
+      marker: { size: 5, color: '#ffffff', opacity: 0.95 }, hoverlabel: hoverCfg },
+    { type: 'scatter3d', mode: 'markers',
+      x: [], y: [], z: [], text: [], hoverinfo: 'text', showlegend: false,
+      marker: { size: 12, color: 'rgba(201,168,76,0.9)', symbol: 'diamond',
+        line: { width: 2, color: '#fff' } }, hoverlabel: hoverCfg },
+  ]);
+  const focusTraceIdx = highlightTraceIdx + 1;
+
+  // Translation state — controlled per-modal, defaults to KJV in search results
+  let activeTrans = 'kjv';
+  function refreshResultTexts() {
+    searchList.querySelectorAll('.sr-item').forEach(item => {
+      const textEl = item.querySelector('.sr-text');
+      if (textEl) {
+        textEl.textContent = activeTrans === 'bsb' && item.dataset.textBsb
+          ? item.dataset.textBsb : item.dataset.text;
+      }
+      const pEl = item.querySelector('.sr-passage-text');
+      if (pEl) {
+        const raw = activeTrans === 'bsb' && item.dataset.passageBsb
+          ? item.dataset.passageBsb : item.dataset.passageKjv || '';
+        pEl.textContent = raw.length > 200 ? raw.slice(0, 200) + '\u2026' : raw;
+      }
+    });
+  }
+
+  // Search mode toggle
+  let searchMode = 'verses';
+  const modeVersesBtn = document.getElementById('mode-verses');
+  const modePassagesBtn = document.getElementById('mode-passages');
+
+  function updateEmptyText() {
+    chatEmptyText.textContent = 'Enter any text to find the most relevant verses or passages in the Bible.';
+  }
+
+  modeVersesBtn.addEventListener('click', () => {
+    searchMode = 'verses';
+    modeVersesBtn.classList.add('active');
+    modePassagesBtn.classList.remove('active');
+    searchInput.placeholder = 'Enter any text...';
+    updateEmptyText();
+    if (searchInput.value.trim().length >= 3) doSearch();
+  });
+  modePassagesBtn.addEventListener('click', () => {
+    searchMode = 'passages';
+    modePassagesBtn.classList.add('active');
+    modeVersesBtn.classList.remove('active');
+    searchInput.placeholder = 'Enter any text...';
+    updateEmptyText();
+    if (searchInput.value.trim().length >= 3) doSearch();
+  });
+
+  // --- Collapsible book filter for search ---
+  const searchFilterBooks = new Set(allBookNums);
+  const sfFilter = document.getElementById('search-filter');
+  const sfHeader = document.getElementById('sf-header');
+  const sfBadge = document.getElementById('sf-badge');
+
+  sfHeader.addEventListener('click', () => { sfFilter.classList.toggle('open'); });
+
+  function updateFilterBadge() {
+    const n = searchFilterBooks.size;
+    const total = allBookNums.length;
+    sfBadge.textContent = n < total ? n + ' / ' + total : '';
+  }
+
+  function syncTestamentToggle(testament) {
+    const books = allBookNums.filter(bn => bookTestament[bn] === testament);
+    const anyOn = books.some(bn => searchFilterBooks.has(bn));
+    const el = document.querySelector(`.sf-testament-header[data-testament="${testament}"] .sf-toggle-track`);
+    const cb = el.querySelector('input');
+    el.classList.toggle('on', anyOn);
+    cb.checked = anyOn;
+  }
+
+  function onFilterChange() {
+    updateFilterBadge();
+    updateEmptyText();
+    if (searchInput.value.trim().length >= 3) doSearch();
+  }
+
+  ['OT', 'NT'].forEach(testament => {
+    const listEl = document.getElementById(testament === 'OT' ? 'sf-ot-list' : 'sf-nt-list');
+    const secEl = document.getElementById(testament === 'OT' ? 'sf-ot' : 'sf-nt');
+    const headerEl = secEl.querySelector('.sf-testament-header');
+    const trackEl = headerEl.querySelector('.sf-toggle-track');
+    const masterCb = trackEl.querySelector('input');
+    trackEl.classList.add('on');
+
+    headerEl.addEventListener('click', (e) => {
+      if (trackEl.contains(e.target)) return;
+      secEl.classList.toggle('open');
+    });
+
+    trackEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const nowOn = !masterCb.checked;
+      masterCb.checked = nowOn;
+      trackEl.classList.toggle('on', nowOn);
+      allBookNums.filter(bn => bookTestament[bn] === testament).forEach(bn => {
+        if (nowOn) searchFilterBooks.add(bn); else searchFilterBooks.delete(bn);
+      });
+      listEl.querySelectorAll('.sf-book').forEach(row => {
+        row.classList.toggle('off', !nowOn);
+        row.querySelector('.sf-toggle-track').classList.toggle('on', nowOn);
+      });
+      onFilterChange();
+    });
+
+    allBookNums.filter(bn => bookTestament[bn] === testament).forEach(bn => {
+      const row = document.createElement('div');
+      row.className = 'sf-book';
+      row.innerHTML = `<span>${bookNames[bn]}</span><span class="sf-toggle-track on"></span>`;
+      const track = row.querySelector('.sf-toggle-track');
+      row.addEventListener('click', () => {
+        const wasOn = searchFilterBooks.has(bn);
+        if (wasOn) searchFilterBooks.delete(bn); else searchFilterBooks.add(bn);
+        row.classList.toggle('off', wasOn);
+        track.classList.toggle('on', !wasOn);
+        syncTestamentToggle(testament);
+        onFilterChange();
+      });
+      listEl.appendChild(row);
+    });
+  });
+
+  updateFilterBadge();
+
+  // Embeddings (uint8-quantised, loaded lazily)
+  let verseEmbU8 = null;
+  let passageEmbU8 = null;
+  let passageData = null;
+  let searchPipeline = null;
+  let searchReady = false;
+  let searchLoading = false;
+
+  async function loadSearchAssets() {
+    if (searchReady || searchLoading) return;
+    searchLoading = true;
+    searchStatus.innerHTML = '<span class="search-dot"></span>Loading 109M-parameter Bible transformer…';
+    searchStatus.style.display = 'block';
+
+    try {
+      const [embBuf, passEmbBuf, passJson, bsbJson, transformers] = await Promise.all([
+        fetch('data/search_embeddings.bin').then(r => r.arrayBuffer()),
+        fetch('data/passage_embeddings.bin').then(r => r.arrayBuffer()),
+        fetch('data/passages.json').then(r => r.json()),
+        loadBsb(),
+        import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1'),
+      ]);
+      verseEmbU8 = new Uint8Array(embBuf);
+      passageEmbU8 = new Uint8Array(passEmbBuf);
+      passageData = passJson;
+
+      searchStatus.innerHTML = '<span class="search-dot"></span>Initializing ONNX Runtime\u2026';
+      transformers.env.allowLocalModels = true;
+      transformers.env.allowRemoteModels = false;
+      transformers.env.localModelPath = '';
+      searchPipeline = await transformers.pipeline('feature-extraction', 'model', {
+        local_files_only: true,
+        quantized: true,
+      });
+      searchReady = true;
+      searchStatus.style.display = 'none';
+    } catch (err) {
+      console.error('Search model load failed:', err);
+      searchStatus.innerHTML = 'Model failed to load — check console';
+      searchStatus.style.color = 'rgba(220,80,80,0.6)';
+    } finally {
+      searchLoading = false;
+    }
+  }
+
+  // Encode query → normalised float32 embedding
+  async function embedQuery(text) {
+    const output = await searchPipeline(text, { pooling: 'mean', normalize: true });
+    return output.tolist()[0];
+  }
+
+  function rankEmbeddings(queryEmb, embU8, count) {
+    const scores = new Float32Array(count);
+    for (let i = 0; i < count; i++) {
+      let dot = 0;
+      const off = i * SEARCH_DIM;
+      for (let d = 0; d < SEARCH_DIM; d++) {
+        dot += queryEmb[d] * (embU8[off + d] / 127.5 - 1.0);
+      }
+      scores[i] = dot;
+    }
+    const indices = Array.from({ length: count }, (_, i) => i);
+    indices.sort((a, b) => scores[b] - scores[a]);
+    return indices.slice(0, 200).map(i => ({ idx: i, score: scores[i] }));
+  }
+
+  const searchSend = document.getElementById('search-send');
+  searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); doSearch(); } });
+  searchInput.addEventListener('input', () => { searchSend.classList.toggle('ready', searchInput.value.trim().length > 0); });
+  searchInput.addEventListener('focus', () => { loadSearchAssets(); });
+  searchSend.addEventListener('click', () => { doSearch(); });
+  searchClear.addEventListener('click', clearSearch);
+
+  async function doSearch() {
+    const q = searchInput.value.trim();
+    if (q.length < 3) { clearSearch(); return; }
+    if (!searchReady) {
+      await loadSearchAssets();
+      if (!searchReady) return;
+    }
+
+    searchStatus.innerHTML = '<span class="search-dot"></span>Encoding query\u2026';
+    searchStatus.style.display = 'block';
+    await new Promise(r => setTimeout(r, 0));
+
+    const queryEmb = await embedQuery(q);
+    searchStatus.style.display = 'none';
+    searchClear.style.display = 'block';
+
+    if (searchMode === 'verses') {
+      await doVerseResults(queryEmb);
+    } else {
+      await doPassageResults(queryEmb);
+    }
+  }
+
+  async function doVerseResults(queryEmb) {
+    const top = rankEmbeddings(queryEmb, verseEmbU8, verseEmbU8.length / SEARCH_DIM);
+    const allResults = top.map(m => ({ ...m, p: pts[m.idx] }));
+    const results = allResults.filter(m => searchFilterBooks.has(m.p.book_num));
+    const maxScore = results.length > 0 ? results[0].score : 1;
+
+    const bsb = bsbVerses || [];
+
+    const shown = results.slice(0, 15);
+    const hx = [], hy = [], hz = [], ht = [];
+    for (const m of shown) { hx.push(m.p.sx); hy.push(m.p.sy); hz.push(m.p.sz); ht.push(`<b>${m.p.ref}</b><br><i>${wrapText(m.p.text, 60)}</i>`); }
+    Plotly.restyle(plotEl, { x: [hx], y: [hy], z: [hz], text: [ht] }, [highlightTraceIdx]);
+
+    if (shown.length > 0) {
+      chatEmpty.style.display = 'none';
+      const filterActive = searchFilterBooks.size < allBookNums.length;
+      const scopeText = filterActive
+        ? searchFilterBooks.size + ' book' + (searchFilterBooks.size !== 1 ? 's' : '')
+        : 'all 31,102 verse embeddings';
+      searchDesc.innerHTML = 'Ranked by <b style="color:rgba(201,168,76,0.4);">cosine similarity</b> across ' + scopeText + '.';
+      searchList.innerHTML = shown.map((m, i) => {
+        const pct = Math.max(0, (m.score / maxScore * 100)).toFixed(0);
+        const bsbText = (bsb[m.idx] || '').replace(/"/g, '&quot;');
+        const displayText = activeTrans === 'bsb' && bsbText ? bsbText : m.p.text;
+        return `<div class="sr-item" data-sx="${m.p.sx}" data-sy="${m.p.sy}" data-sz="${m.p.sz}" data-ref="${m.p.ref}" data-text="${m.p.text.replace(/"/g, '&quot;')}" data-text-bsb="${bsbText}" data-mode="verse" style="cursor:pointer;">` +
+          `<span class="sr-ref">${i + 1}. ${m.p.ref}</span><span class="sr-score" title="Cosine similarity">${m.score.toFixed(3)}</span>` +
+          `<span class="sr-text">${displayText}</span><div class="sr-bar"><div class="sr-bar-fill" style="width:${pct}%"></div></div></div>`;
+      }).join('');
+      bindResultClicks();
+      aimCamera(hx, hy, hz);
+    } else { chatEmpty.style.display = 'block'; searchList.innerHTML = ''; searchDesc.innerHTML = ''; }
+  }
+
+  function doPassageResults(queryEmb) {
+    const top = rankEmbeddings(queryEmb, passageEmbU8, passageData.length);
+    const allResults = top.map(m => ({ ...m, psg: passageData[m.idx] }));
+    const filtered = allResults.filter(m => searchFilterBooks.has(m.psg.book_num));
+    const shown = filtered.slice(0, 15);
+    const maxScore = shown.length > 0 ? shown[0].score : 1;
+
+    const hx = [], hy = [], hz = [], ht = [];
+    for (const m of shown) {
+      for (const vi of m.psg.verse_ids) {
+        const p = pts[vi];
+        if (p) { hx.push(p.sx); hy.push(p.sy); hz.push(p.sz); ht.push(`<b>${p.ref}</b><br><i>${wrapText(p.text, 60)}</i>`); }
+      }
+    }
+    Plotly.restyle(plotEl, { x: [hx], y: [hy], z: [hz], text: [ht] }, [highlightTraceIdx]);
+
+    if (shown.length > 0) {
+      chatEmpty.style.display = 'none';
+      const filterActive = searchFilterBooks.size < allBookNums.length;
+      const scopeText = filterActive
+        ? searchFilterBooks.size + ' book' + (searchFilterBooks.size !== 1 ? 's' : '')
+        : passageData.length.toLocaleString() + ' passages';
+      searchDesc.innerHTML = 'Ranked by <b style="color:rgba(201,168,76,0.4);">cosine similarity</b> across ' + scopeText + '.';
+      searchList.innerHTML = shown.map((m, i) => {
+        const psg = m.psg;
+        const pct = Math.max(0, (m.score / maxScore * 100)).toFixed(0);
+        const vids = JSON.stringify(psg.verse_ids);
+        const bsbFull = (psg.text_bsb || '').replace(/"/g, '&quot;');
+        const kjvFull = psg.text.replace(/"/g, '&quot;');
+        const rawPreview = activeTrans === 'bsb' && psg.text_bsb ? psg.text_bsb : psg.text;
+        const preview = rawPreview.length > 200 ? rawPreview.slice(0, 200) + '\u2026' : rawPreview;
+        return `<div class="sr-item" data-verse-ids='${vids}' data-ref="${psg.ref}" data-title="${psg.title.replace(/"/g, '&quot;')}" data-passage-kjv="${kjvFull}" data-passage-bsb="${bsbFull}" data-mode="passage" style="cursor:pointer;">` +
+          `<span class="sr-ref">${i + 1}. ${psg.ref}</span><span class="sr-score" title="Cosine similarity">${m.score.toFixed(3)}</span>` +
+          `<span class="sr-title">${psg.title}</span>` +
+          `<span class="sr-passage-text">${preview}</span>` +
+          `<div class="sr-bar"><div class="sr-bar-fill" style="width:${pct}%"></div></div></div>`;
+      }).join('');
+      bindResultClicks();
+      aimCamera(hx, hy, hz);
+    } else { chatEmpty.style.display = 'block'; searchList.innerHTML = ''; searchDesc.innerHTML = ''; }
+  }
+
+  function bindResultClicks() {
+    searchList.querySelectorAll('.sr-item').forEach(item => {
+      item.addEventListener('click', () => focusResult(item));
+    });
+  }
+
+  function aimCamera(hx, hy, hz) {
+    if (!hx.length) return;
+    const cx = hx.reduce((a, b) => a + b, 0) / hx.length;
+    const cy = hy.reduce((a, b) => a + b, 0) / hy.length;
+    const cz = hz.reduce((a, b) => a + b, 0) / hz.length;
+    const dist = Math.sqrt(cx*cx + cy*cy + cz*cz) || 1, s = 2.0 / dist;
+    spinning = false;
+    Plotly.relayout(plotEl, { 'scene.camera.eye': { x: cx*s, y: cy*s, z: cz*s } });
+    radius = Math.sqrt((cx*s)**2 + (cy*s)**2); camZ = cz*s; angle = Math.atan2(cy*s, cx*s);
+  }
+
+  let sphereFaded = false;
+
+  function fadeSphere() {
+    if (sphereFaded) return;
+    sphereFaded = true;
+    Plotly.restyle(plotEl, { 'marker.opacity': [ot.bookNum.map(() => 0.06)] }, [otTraceIdx]);
+    Plotly.restyle(plotEl, { 'marker.opacity': [nt.bookNum.map(() => 0.06)] }, [ntTraceIdx]);
+    for (let i = arcTraceStart; i < arcTraceEnd; i++) {
+      Plotly.restyle(plotEl, { 'line.width': 0.15 }, [i]);
+    }
+  }
+
+  function restoreSphere() {
+    if (!sphereFaded) return;
+    sphereFaded = false;
+    Plotly.restyle(plotEl, { 'marker.opacity': [ot.bookNum.map(() => 0.85)] }, [otTraceIdx]);
+    Plotly.restyle(plotEl, { 'marker.opacity': [nt.bookNum.map(() => 0.85)] }, [ntTraceIdx]);
+    for (let i = arcTraceStart; i < arcTraceEnd; i++) {
+      Plotly.restyle(plotEl, { 'line.width': ARC_WIDTH }, [i]);
+    }
+    Plotly.restyle(plotEl, { x: [[]], y: [[]], z: [[]], text: [[]] }, [focusTraceIdx]);
+    if (pulseTimer) { clearInterval(pulseTimer); pulseTimer = null; }
+  }
+
+  function clearSearch() {
+    searchInput.value = ''; searchClear.style.display = 'none';
+    searchStatus.style.display = 'none';
+    chatEmpty.style.display = 'block';
+    searchList.innerHTML = '';
+    searchDesc.innerHTML = '';
+    Plotly.restyle(plotEl, { x: [[]], y: [[]], z: [[]], text: [[]] }, [highlightTraceIdx]);
+    if (!sphereFaded) {
+      Plotly.restyle(plotEl, { x: [[]], y: [[]], z: [[]], text: [[]] }, [focusTraceIdx]);
+      if (pulseTimer) { clearInterval(pulseTimer); pulseTimer = null; }
+    }
+    document.querySelectorAll('.sr-item.active').forEach(el => el.classList.remove('active'));
+  }
+
+  // --- Passage modal ---
+  const modalOverlay = document.getElementById('passage-modal-overlay');
+  const modalRef = document.getElementById('passage-modal-ref');
+  const modalTitle = document.getElementById('passage-modal-title');
+  const modalBody = document.getElementById('passage-modal-body');
+  const modalBodyBsb = document.getElementById('passage-modal-body-bsb');
+  const pmKjvBtn = document.getElementById('pm-kjv');
+  const pmBsbBtn = document.getElementById('pm-bsb');
+  let pmTrans = 'kjv';
+
+  pmKjvBtn.addEventListener('click', () => {
+    pmTrans = 'kjv';
+    pmKjvBtn.classList.add('active'); pmBsbBtn.classList.remove('active');
+    modalBody.style.display = ''; modalBodyBsb.style.display = 'none';
+  });
+  pmBsbBtn.addEventListener('click', () => {
+    pmTrans = 'bsb';
+    pmBsbBtn.classList.add('active'); pmKjvBtn.classList.remove('active');
+    modalBody.style.display = 'none'; modalBodyBsb.style.display = '';
+  });
+
+  async function openPassageModal(item) {
+    const vids = JSON.parse(item.dataset.verseIds);
+    const ref = item.dataset.ref;
+    const title = item.dataset.title;
+
+    modalRef.textContent = ref;
+    modalTitle.textContent = title;
+
+    const bsb = await loadBsb();
+
+    let kjvHtml = '', bsbHtml = '';
+    const passageRefs = [];
+    let passageBookNum = null;
+    for (const vi of vids) {
+      const p = pts[vi];
+      if (p) {
+        const vn = p.ref.split(':').pop();
+        kjvHtml += `<span class="pm-verse-num">${vn}</span>${p.text} `;
+        const bsbText = bsb[vi] || '';
+        if (bsbText) {
+          bsbHtml += `<span class="pm-verse-num">${vn}</span>${bsbText} `;
+        }
+        passageRefs.push(p.ref);
+        if (!passageBookNum) passageBookNum = p.book_num;
+      }
+    }
+    modalBody.innerHTML = kjvHtml;
+    modalBodyBsb.innerHTML = bsbHtml || '<span style="color:rgba(232,228,220,0.25);font-style:italic;">Modern English translation not available for this passage.</span>';
+
+    currentModalBookNum = passageBookNum;
+    currentModalRefs = passageRefs;
+
+    pmTrans = activeTrans;
+    pmKjvBtn.classList.toggle('active', pmTrans === 'kjv');
+    pmBsbBtn.classList.toggle('active', pmTrans === 'bsb');
+    modalBody.style.display = pmTrans === 'kjv' ? '' : 'none';
+    modalBodyBsb.style.display = pmTrans === 'bsb' ? '' : 'none';
+
+    modalOverlay.classList.add('open');
+  }
+
+  document.getElementById('passage-modal-close').addEventListener('click', () => {
+    modalOverlay.classList.remove('open');
+  });
+  modalOverlay.addEventListener('click', (e) => {
+    if (e.target === modalOverlay) modalOverlay.classList.remove('open');
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modalOverlay.classList.contains('open')) {
+      modalOverlay.classList.remove('open');
+    }
+    if (e.key === 'Escape' && readerOverlay.classList.contains('open')) {
+      readerOverlay.classList.remove('open');
+    }
+  });
+
+  // --- Custom dropdown helper ---
+  function setupDropdown(wrapId, triggerId, menuId, onChange) {
+    const wrap = document.getElementById(wrapId);
+    const trigger = document.getElementById(triggerId);
+    const menu = document.getElementById(menuId);
+    let value = null;
+    const dd = {
+      get value() { return value; },
+      set value(v) {
+        value = v;
+        const items = menu.querySelectorAll('.cd-item[data-value]');
+        items.forEach(it => {
+          it.classList.toggle('active', it.dataset.value === String(v));
+        });
+        const active = menu.querySelector('.cd-item.active');
+        if (active) trigger.querySelector('span').textContent = active.dataset.label || active.textContent.trim();
+      },
+      setItems(items, groupBy) {
+        const listContainer = menu.querySelector('#cd-book-list') || menu;
+        let html = '';
+        if (groupBy) {
+          const groups = {};
+          items.forEach(it => {
+            const g = groupBy(it);
+            if (!groups[g]) groups[g] = [];
+            groups[g].push(it);
+          });
+          Object.keys(groups).forEach((g, gi) => {
+            if (gi > 0) html += '<div class="cd-divider"></div>';
+            html += `<div class="cd-group-label">${g}</div>`;
+            groups[g].forEach(it => {
+              html += `<div class="cd-item" data-value="${it.value}" data-label="${it.label}"><span class="cd-check"><svg viewBox="0 0 12 12" fill="none" stroke="rgba(201,168,76,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6l3 3 5-5"/></svg></span>${it.label}</div>`;
+            });
+          });
+        } else {
+          items.forEach(it => {
+            html += `<div class="cd-item" data-value="${it.value}" data-label="${it.label}"><span class="cd-check"><svg viewBox="0 0 12 12" fill="none" stroke="rgba(201,168,76,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6l3 3 5-5"/></svg></span>${it.label}</div>`;
+          });
+        }
+        listContainer.innerHTML = html;
+        menu.querySelectorAll('.cd-item').forEach(it => {
+          it.addEventListener('click', () => {
+            dd.value = it.dataset.value;
+            wrap.classList.remove('open');
+            if (onChange) onChange(it.dataset.value);
+          });
+        });
+      },
+      close() { wrap.classList.remove('open'); },
+    };
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      document.querySelectorAll('.cd-wrap.open').forEach(w => { if (w !== wrap) w.classList.remove('open'); });
+      wrap.classList.toggle('open');
+      const searchInput = menu.querySelector('.cd-menu-search input');
+      if (searchInput && wrap.classList.contains('open')) {
+        searchInput.value = '';
+        searchInput.dispatchEvent(new Event('input'));
+        setTimeout(() => searchInput.focus(), 50);
+      }
+    });
+    return dd;
+  }
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.cd-wrap')) {
+      document.querySelectorAll('.cd-wrap.open').forEach(w => w.classList.remove('open'));
+    }
+  });
+
+  // --- Bible Reader ---
+  const readerOverlay = document.getElementById('reader-overlay');
+  const readerInner = document.getElementById('reader-inner');
+  const readerContent = document.getElementById('reader-content');
+  const readerKjvBtn = document.getElementById('reader-kjv');
+  const readerBsbBtn = document.getElementById('reader-bsb');
+  let readerTrans = 'kjv';
+  let readerBookNum = 1;
+  let readerHighlightRefs = new Set();
+
+  const bookChapters = {};
+  for (const p of pts) {
+    const cv = p.ref.substring(p.book.length + 1);
+    const ch = parseInt(cv.split(':')[0], 10);
+    if (!bookChapters[p.book_num]) bookChapters[p.book_num] = new Set();
+    bookChapters[p.book_num].add(ch);
+  }
+
+  const readerBookSelect = setupDropdown('cd-book', 'cd-book-trigger', 'cd-book-menu', (val) => {
+    readerHighlightRefs.clear();
+    renderBook(parseInt(val, 10), null);
+    if (typeof clearChat === 'function') clearChat();
+  });
+  const otBooks = allBookNums.filter(bn => bn <= 39);
+  const ntBooks = allBookNums.filter(bn => bn > 39);
+  const bookItems = allBookNums.map(bn => ({ value: String(bn), label: bookNames[bn] }));
+  const bookListEl = document.getElementById('cd-book-list');
+  readerBookSelect.setItems(bookItems, (it) => parseInt(it.value) <= 39 ? 'Old Testament' : 'New Testament');
+  readerBookSelect.value = '1';
+
+  const bookSearchInput = document.getElementById('cd-book-search');
+  bookSearchInput.addEventListener('input', () => {
+    const q = bookSearchInput.value.toLowerCase();
+    bookListEl.querySelectorAll('.cd-item').forEach(it => {
+      it.style.display = it.dataset.label.toLowerCase().includes(q) ? '' : 'none';
+    });
+    bookListEl.querySelectorAll('.cd-group-label, .cd-divider').forEach(el => {
+      el.style.display = q ? 'none' : '';
+    });
+  });
+
+  const readerChapterSelect = setupDropdown('cd-chapter', 'cd-chapter-trigger', 'cd-chapter-menu', (val) => {
+    const ch = parseInt(val, 10);
+    const el = document.getElementById('reader-ch-' + ch);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const chapters = [...(bookChapters[readerBookNum] || [])].sort((a, b) => a - b);
+    updateNavButtons(chapters);
+  });
+
+  function parseChapterVerse(ref, bookName) {
+    const cv = ref.substring(bookName.length + 1);
+    const parts = cv.split(':');
+    return { chapter: parseInt(parts[0], 10), verse: parseInt(parts[1], 10) };
+  }
+
+  const bookVerseIndex = {};
+  for (let i = 0; i < pts.length; i++) {
+    const p = pts[i];
+    if (!bookVerseIndex[p.book_num]) bookVerseIndex[p.book_num] = [];
+    const cv = parseChapterVerse(p.ref, p.book);
+    bookVerseIndex[p.book_num].push({ idx: i, chapter: cv.chapter, verse: cv.verse, ref: p.ref });
+  }
+
+  async function renderBook(bookNum, scrollToRef) {
+    readerBookNum = bookNum;
+    readerBookSelect.value = String(bookNum);
+    const bsb = await loadBsb();
+    const chapters = [...(bookChapters[bookNum] || [])].sort((a, b) => a - b);
+
+    readerChapterSelect.setItems(chapters.map(ch => ({ value: String(ch), label: 'Chapter ' + ch })));
+
+    const entries = bookVerseIndex[bookNum] || [];
+    const byChapter = {};
+    for (const e of entries) {
+      if (!byChapter[e.chapter]) byChapter[e.chapter] = [];
+      byChapter[e.chapter].push(e);
+    }
+
+    let html = '';
+    let scrollTargetId = '';
+    for (const ch of chapters) {
+      html += `<div class="reader-chapter-heading" id="reader-ch-${ch}">Chapter ${ch}</div>`;
+      const vv = byChapter[ch] || [];
+      for (const v of vv) {
+        const p = pts[v.idx];
+        const isHighlight = readerHighlightRefs.has(v.ref);
+        const verseId = `reader-v-${ch}-${v.verse}`;
+        if (isHighlight && !scrollTargetId) scrollTargetId = verseId;
+
+        const text = readerTrans === 'bsb' && bsb[v.idx] ? bsb[v.idx] : p.text;
+        html += `<span class="reader-verse${isHighlight ? ' highlight' : ''}" id="${verseId}">` +
+          `<span class="reader-verse-num">${v.verse}</span>` +
+          `<span class="reader-verse-text">${text}</span></span> `;
+      }
+    }
+    readerInner.innerHTML = html;
+
+    if (scrollToRef && scrollTargetId) {
+      requestAnimationFrame(() => {
+        const target = document.getElementById(scrollTargetId);
+        if (target) {
+          target.scrollIntoView({ behavior: 'instant', block: 'center' });
+        }
+      });
+    }
+
+    if (scrollToRef) {
+      const cv = parseChapterVerse(scrollToRef, bookNames[bookNum]);
+      readerChapterSelect.value = String(cv.chapter);
+      updateNavButtons(chapters);
+    } else {
+      readerContent.scrollTop = 0;
+      if (chapters.length) readerChapterSelect.value = String(chapters[0]);
+      updateNavButtons(chapters);
+    }
+  }
+
+  function updateNavButtons(chapters) {
+    const cur = parseInt(readerChapterSelect.value, 10);
+    document.getElementById('reader-prev').disabled = cur <= chapters[0];
+    document.getElementById('reader-next').disabled = cur >= chapters[chapters.length - 1];
+  }
+
+  function openReader(bookNum, highlightRefs) {
+    readerHighlightRefs = new Set(highlightRefs);
+    modalOverlay.classList.remove('open');
+    readerOverlay.classList.add('open');
+    const scrollRef = highlightRefs.length > 0 ? highlightRefs[0] : null;
+    renderBook(bookNum, scrollRef);
+  }
+
+  document.getElementById('reader-close').addEventListener('click', () => {
+    readerOverlay.classList.remove('open');
+  });
+
+  document.getElementById('reader-prev').addEventListener('click', () => {
+    const chapters = [...(bookChapters[readerBookNum] || [])].sort((a, b) => a - b);
+    const cur = parseInt(readerChapterSelect.value, 10);
+    const idx = chapters.indexOf(cur);
+    if (idx > 0) {
+      readerChapterSelect.value = String(chapters[idx - 1]);
+      const el = document.getElementById('reader-ch-' + chapters[idx - 1]);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      updateNavButtons(chapters);
+    }
+  });
+  document.getElementById('reader-next').addEventListener('click', () => {
+    const chapters = [...(bookChapters[readerBookNum] || [])].sort((a, b) => a - b);
+    const cur = parseInt(readerChapterSelect.value, 10);
+    const idx = chapters.indexOf(cur);
+    if (idx < chapters.length - 1) {
+      readerChapterSelect.value = String(chapters[idx + 1]);
+      const el = document.getElementById('reader-ch-' + chapters[idx + 1]);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      updateNavButtons(chapters);
+    }
+  });
+
+  readerKjvBtn.addEventListener('click', () => {
+    readerTrans = 'kjv';
+    readerKjvBtn.classList.add('active');
+    readerBsbBtn.classList.remove('active');
+    const scrollRef = readerHighlightRefs.size > 0 ? [...readerHighlightRefs][0] : null;
+    renderBook(readerBookNum, scrollRef);
+  });
+  readerBsbBtn.addEventListener('click', () => {
+    readerTrans = 'bsb';
+    readerBsbBtn.classList.add('active');
+    readerKjvBtn.classList.remove('active');
+    const scrollRef = readerHighlightRefs.size > 0 ? [...readerHighlightRefs][0] : null;
+    renderBook(readerBookNum, scrollRef);
+  });
+
+  // Scroll spy: update chapter select as user scrolls
+  readerContent.addEventListener('scroll', () => {
+    const headings = readerInner.querySelectorAll('.reader-chapter-heading');
+    let active = null;
+    for (const h of headings) {
+      if (h.getBoundingClientRect().top <= 100) active = h;
+    }
+    if (active) {
+      const ch = parseInt(active.id.replace('reader-ch-', ''), 10);
+      if (parseInt(readerChapterSelect.value, 10) !== ch) {
+        readerChapterSelect.value = String(ch);
+        const chapters = [...(bookChapters[readerBookNum] || [])].sort((a, b) => a - b);
+        updateNavButtons(chapters);
+      }
+    }
+  });
+
+  // Wire the "Read in context" button from the modal
+  let currentModalBookNum = null;
+  let currentModalRefs = [];
+
+  document.getElementById('pm-read-context').addEventListener('click', () => {
+    if (currentModalBookNum) openReader(currentModalBookNum, currentModalRefs);
+  });
+
+  document.getElementById('reader-cta-btn').addEventListener('click', () => {
+    openReader(1, []);
+  });
+
+  // --- Reader Chat (AI Q&A) ---
+  const chatMsgContainer = document.getElementById('reader-chat-messages');
+  const chatInput = document.getElementById('reader-chat-input');
+  const chatSendBtn = document.getElementById('reader-chat-send');
+  const chatSettingsPanel = document.getElementById('reader-chat-settings');
+  const chatSettingsBtn = document.getElementById('reader-chat-settings-btn');
+  const chatApiKeyInput = document.getElementById('reader-chat-api-key');
+  const chatKeySaveBtn = document.getElementById('reader-chat-key-save');
+  let chatHistory = [];
+  let chatStreaming = false;
+  let llmEngine = null;
+  let llmCurrentModel = null;
+
+  const LLM_MODELS = [
+    { id: 'Phi-3.5-mini-instruct-q4f16_1-MLC', label: 'Phi 3.5 Mini', vram: '3.7 GB' },
+    { id: 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC', label: 'Qwen 2.5 1.5B', vram: '1.6 GB' },
+    { id: 'Llama-3.2-3B-Instruct-q4f16_1-MLC', label: 'Llama 3.2 3B', vram: '2.3 GB' },
+    { id: 'Llama-3.2-1B-Instruct-q4f16_1-MLC', label: 'Llama 3.2 1B', vram: '0.9 GB' },
+    { id: 'Qwen2.5-3B-Instruct-q4f16_1-MLC', label: 'Qwen 2.5 3B', vram: '2.5 GB' },
+    { id: 'SmolLM2-1.7B-Instruct-q4f16_1-MLC', label: 'SmolLM2 1.7B', vram: '1.8 GB' },
+  ];
+
+  const chatModelSelect = setupDropdown('cd-model', 'cd-model-trigger', 'cd-model-menu', async (val) => {
+    localStorage.setItem('bv_llm_model', val);
+    if (!localStorage.getItem('bv_openai_key') && navigator.gpu && llmCurrentModel !== val) {
+      chatHistory = [];
+      renderChat();
+      await showModelLoading(val);
+    }
+  });
+  chatModelSelect.setItems(LLM_MODELS.map(m => ({ value: m.id, label: m.label })));
+  const storedModel = localStorage.getItem('bv_llm_model');
+  if (storedModel && LLM_MODELS.find(m => m.id === storedModel)) {
+    chatModelSelect.value = storedModel;
+  } else {
+    chatModelSelect.value = LLM_MODELS[0].id;
+  }
+
+  function getSelectedModel() { return chatModelSelect.value; }
+
+  // Pre-load default model in background
+  if (navigator.gpu && !localStorage.getItem('bv_openai_key')) {
+    initLLM(getSelectedModel(), function () {}).catch(function () {});
+  }
+
+  const savedKey = localStorage.getItem('bv_openai_key');
+  if (savedKey) chatApiKeyInput.value = savedKey;
+
+  chatSettingsBtn.addEventListener('click', () => {
+    chatSettingsPanel.style.display = chatSettingsPanel.style.display === 'none' ? '' : 'none';
+  });
+
+  chatKeySaveBtn.addEventListener('click', () => {
+    const k = chatApiKeyInput.value.trim();
+    if (k) localStorage.setItem('bv_openai_key', k);
+    else localStorage.removeItem('bv_openai_key');
+    chatSettingsPanel.style.display = 'none';
+  });
+  chatApiKeyInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); chatKeySaveBtn.click(); }
+  });
+
+  chatInput.addEventListener('input', function () {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 96) + 'px';
+  });
+  chatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+  });
+  chatSendBtn.addEventListener('click', sendChat);
+
+  function getChatContext() {
+    const name = bookNames[readerBookNum];
+    const ch = parseInt(readerChapterSelect.value, 10);
+    const entries = (bookVerseIndex[readerBookNum] || []).filter(e => e.chapter === ch);
+    let text = '';
+    for (const v of entries) {
+      const p = pts[v.idx];
+      const t = readerTrans === 'bsb' && bsbVerses && bsbVerses[v.idx] ? bsbVerses[v.idx] : p.text;
+      text += v.verse + '. ' + t + '\n';
+    }
+    return { bookName: name, chapter: ch, text: text };
+  }
+
+  function formatChat(str) {
+    let s = str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    s = s.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    s = s.replace(/\n/g, '<br>');
+    return s;
+  }
+
+  function renderChat() {
+    if (chatHistory.length === 0) {
+      chatMsgContainer.innerHTML = '<div class="reader-chat-empty">Ask anything about the text you\'re reading.</div>';
+      return;
+    }
+    chatMsgContainer.innerHTML = chatHistory.map(m => {
+      const cls = m.role === 'user' ? 'chat-msg-user' : 'chat-msg-assistant';
+      const label = m.role === 'user' ? 'You' : 'BibleVerse';
+      return '<div class="chat-msg ' + cls + '">' +
+        '<div class="chat-msg-label">' + label + '</div>' +
+        '<div class="chat-bubble">' + formatChat(m.content) + '</div></div>';
+    }).join('');
+    chatMsgContainer.scrollTop = chatMsgContainer.scrollHeight;
+  }
+
+  function updateLastBubble() {
+    const last = chatMsgContainer.querySelector('.chat-msg:last-child .chat-bubble');
+    if (last) {
+      last.innerHTML = formatChat(chatHistory[chatHistory.length - 1].content);
+      chatMsgContainer.scrollTop = chatMsgContainer.scrollHeight;
+    }
+  }
+
+  function buildMsgs() {
+    const ctx = getChatContext();
+    const sys = 'You are a Bible study assistant helping someone read ' + ctx.bookName +
+      ', Chapter ' + ctx.chapter + '. Answer based on the chapter text below. ' +
+      'Cite verse numbers. Be accurate and concise.\n\n' + ctx.text;
+    const msgs = [{ role: 'system', content: sys }];
+    for (const m of chatHistory) {
+      if (m.content) msgs.push({ role: m.role, content: m.content });
+    }
+    return msgs;
+  }
+
+  async function initLLM(modelId, onProgress) {
+    if (llmEngine && llmCurrentModel === modelId) return;
+    if (llmEngine) { await llmEngine.unload(); llmEngine = null; }
+    const mod = await import('https://esm.run/@mlc-ai/web-llm');
+    llmEngine = await mod.CreateMLCEngine(modelId, {
+      initProgressCallback: onProgress,
+    });
+    llmCurrentModel = modelId;
+  }
+
+  const modelLoadingEl = document.getElementById('reader-chat-model-loading');
+  const modelLoadingText = document.getElementById('rcml-text');
+  const modelLoadingBar = document.getElementById('rcml-bar');
+
+  async function showModelLoading(modelId) {
+    const label = LLM_MODELS.find(m => m.id === modelId)?.label || modelId;
+    modelLoadingText.textContent = label;
+    modelLoadingBar.style.width = '0%';
+    modelLoadingEl.classList.add('active');
+    try {
+      await initLLM(modelId, function (report) {
+        const pct = Math.round((report.progress || 0) * 100);
+        modelLoadingBar.style.width = pct + '%';
+        modelLoadingText.textContent = pct >= 100 ? 'Starting ' + label : label;
+      });
+    } finally {
+      modelLoadingEl.classList.remove('active');
+    }
+  }
+
+  async function sendChat() {
+    const text = chatInput.value.trim();
+    if (!text || chatStreaming) return;
+    chatInput.value = '';
+    chatInput.style.height = 'auto';
+
+    chatHistory.push({ role: 'user', content: text });
+    chatHistory.push({ role: 'assistant', content: '' });
+    renderChat();
+    chatStreaming = true;
+
+    const apiKey = localStorage.getItem('bv_openai_key');
+
+    try {
+      if (apiKey) {
+        await streamOpenAI(buildMsgs(), apiKey);
+      } else {
+        if (!navigator.gpu) {
+          chatHistory[chatHistory.length - 1].content =
+            'Your browser does not support WebGPU, which is required for in-browser AI.\n\n' +
+            'Use Chrome or Edge for the best experience, or add an OpenAI API key via the gear icon above.';
+          renderChat();
+          chatStreaming = false;
+          return;
+        }
+        const selectedModel = getSelectedModel();
+        if (!llmEngine || llmCurrentModel !== selectedModel) {
+          await showModelLoading(selectedModel);
+        }
+        const resp = await llmEngine.chat.completions.create({
+          messages: buildMsgs(), stream: true, temperature: 0.7, max_tokens: 1024,
+        });
+        for await (const chunk of resp) {
+          const delta = chunk.choices[0]?.delta?.content || '';
+          if (delta) {
+            chatHistory[chatHistory.length - 1].content += delta;
+            updateLastBubble();
+          }
+        }
+      }
+    } catch (err) {
+      if (!chatHistory[chatHistory.length - 1].content) {
+        chatHistory[chatHistory.length - 1].content = 'Something went wrong. Please try again.';
+      }
+      renderChat();
+    }
+    chatStreaming = false;
+  }
+
+  async function streamOpenAI(msgs, key) {
+    const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+      body: JSON.stringify({ model: 'gpt-4o-mini', messages: msgs, stream: true }),
+    });
+    if (!resp.ok) throw new Error(await resp.text());
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const d = line.slice(6).trim();
+        if (d === '[DONE]') return;
+        try {
+          const delta = JSON.parse(d).choices[0].delta.content || '';
+          if (delta) {
+            chatHistory[chatHistory.length - 1].content += delta;
+            updateLastBubble();
+          }
+        } catch (_) {}
+      }
+    }
+  }
+
+  // Clear chat when reader closes or book changes
+  function clearChat() {
+    chatHistory = [];
+    renderChat();
+  }
+  document.getElementById('reader-close').addEventListener('click', clearChat);
+
+  let pulseTimer = null;
+  function focusResult(item) {
+    document.querySelectorAll('.sr-item.active').forEach(el => el.classList.remove('active'));
+    item.classList.add('active');
+
+    if (item.dataset.mode === 'passage') {
+      openPassageModal(item);
+      return;
+    }
+
+    // Verse click → open modal with the single verse
+    openVerseModal(item);
+  }
+
+  async function openVerseModal(item) {
+    const ref = item.dataset.ref;
+    const kjvText = item.dataset.text;
+    const bsbText = item.dataset.textBsb || '';
+
+    modalRef.textContent = ref;
+    modalTitle.textContent = '';
+
+    modalBody.innerHTML = kjvText;
+    modalBodyBsb.innerHTML = bsbText || '<span style="color:rgba(232,228,220,0.25);font-style:italic;">Modern English translation not available.</span>';
+
+    const matchedPt = pts.find(p => p.ref === ref);
+    currentModalBookNum = matchedPt ? matchedPt.book_num : null;
+    currentModalRefs = [ref];
+
+    pmTrans = activeTrans;
+    pmKjvBtn.classList.toggle('active', pmTrans === 'kjv');
+    pmBsbBtn.classList.toggle('active', pmTrans === 'bsb');
+    modalBody.style.display = pmTrans === 'kjv' ? '' : 'none';
+    modalBodyBsb.style.display = pmTrans === 'bsb' ? '' : 'none';
+
+    modalOverlay.classList.add('open');
+  }
+
+  // --- Auto-rotation with drag continuation ---
+  let spinning = true;
+  let angle = Math.atan2(1.45, 1.45);
+  let radius = Math.sqrt(1.45 * 1.45 + 1.45 * 1.45);
+  let camZ = 0.6;
+  let rotateRAF = null;
+  let rotDir = 1;
+  const ROT_SPEED = 0.001;
+  const DRAG_THRESHOLD = 8;
+
+  function syncFromCamera() {
+    try {
+      const eye = plotEl._fullLayout.scene._scene.getCamera().eye;
+      radius = Math.sqrt(eye.x * eye.x + eye.y * eye.y);
+      camZ = eye.z;
+      angle = Math.atan2(eye.y, eye.x);
+    } catch (_) {}
+  }
+
+  function setCamera(eye) {
+    try {
+      const scene = plotEl._fullLayout.scene._scene;
+      scene.setCamera({ eye: eye, up: { x: 0, y: 0, z: 1 } });
+      scene.glplot.redraw();
+    } catch (_) {
+      Plotly.relayout(plotEl, { 'scene.camera.eye': eye });
+    }
+  }
+
+  function rotate() {
+    if (!spinning) { rotateRAF = null; return; }
+    angle += ROT_SPEED * rotDir;
+    setCamera({ x: radius * Math.cos(angle), y: radius * Math.sin(angle), z: camZ });
+    rotateRAF = requestAnimationFrame(rotate);
+  }
+
+  function startRotation() {
+    if (rotateRAF) cancelAnimationFrame(rotateRAF);
+    rotateRAF = null;
+    spinning = true;
+    rotate();
+  }
+
+  let isDragging = false;
+  let dragStartX = 0, dragStartY = 0;
+  let dragStartAngle = 0;
+
+  plotEl.addEventListener('mousedown', (e) => {
+    spinning = false;
+    if (rotateRAF) { cancelAnimationFrame(rotateRAF); rotateRAF = null; }
+    isDragging = true;
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+    syncFromCamera();
+    dragStartAngle = angle;
+  });
+
+  window.addEventListener('mouseup', (e) => {
+    if (!isDragging) return;
+    isDragging = false;
+    if (viewerMode || zoomAnimating) return;
+
+    const dx = e.clientX - dragStartX;
+    const dy = e.clientY - dragStartY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist < DRAG_THRESHOLD) return;
+
+    syncFromCamera();
+    let da = angle - dragStartAngle;
+    if (da > Math.PI) da -= 2 * Math.PI;
+    if (da < -Math.PI) da += 2 * Math.PI;
+    if (da !== 0) rotDir = da > 0 ? 1 : -1;
+
+    startRotation();
+  });
+
+  startRotation();
+
+  // Align CTA bottom with panel bottoms
+  function alignCTA() {
+    const edgePanel = document.querySelector('.sphere-edge-panel');
+    const cta = document.getElementById('reader-cta');
+    const section = document.querySelector('.sphere-section');
+    if (!edgePanel || !cta || !section) return;
+    const sectionRect = section.getBoundingClientRect();
+    const edgeRect = edgePanel.getBoundingClientRect();
+    const bottomOffset = sectionRect.bottom - edgeRect.bottom;
+    cta.style.bottom = bottomOffset + 'px';
+  }
+  window.addEventListener('load', alignCTA);
+  window.addEventListener('resize', alignCTA);
+  setTimeout(alignCTA, 1500);
+
+  // --- Representative verses ---
+  if (data.representative_verses) {
+    const otList = document.getElementById('rv-ot-list');
+    const ntList = document.getElementById('rv-nt-list');
+    if (otList && ntList) {
+      for (const rv of data.representative_verses) {
+        const card = document.createElement('div');
+        card.className = 'rv-card';
+        card.dataset.book = rv.book.toLowerCase();
+        card.dataset.text = rv.text.toLowerCase();
+        card.innerHTML = `<div class="rv-header"><span class="rv-dot" style="background:${bookColor(rv.book_num)}"></span>` +
+          `<span class="rv-book">${rv.book}</span><span class="rv-meta">${rv.n_verses} verses · cosine ${rv.similarity}</span></div>` +
+          `<div class="rv-ref">${rv.ref}</div><div class="rv-text">${rv.text}</div>`;
+        (rv.testament === 'OT' ? otList : ntList).appendChild(card);
+      }
+
+      document.querySelectorAll('.rv-toggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const target = document.getElementById(btn.dataset.target);
+          const searchWrap = target.previousElementSibling;
+          const open = target.style.display !== 'none';
+          target.style.display = open ? 'none' : 'block';
+          searchWrap.style.display = open ? 'none' : 'block';
+          btn.classList.toggle('open', !open);
+        });
+      });
+
+      function wireSearch(inputId, listId) {
+        const input = document.getElementById(inputId);
+        const list = document.getElementById(listId);
+        input.addEventListener('input', () => {
+          const q = input.value.toLowerCase().trim();
+          for (const card of list.children) {
+            const match = !q || card.dataset.book.includes(q) || card.dataset.text.includes(q);
+            card.style.display = match ? '' : 'none';
+          }
+        });
+      }
+      wireSearch('rv-ot-search', 'rv-ot-list');
+      wireSearch('rv-nt-search', 'rv-nt-list');
+    }
+  }
+})();
