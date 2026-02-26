@@ -34,6 +34,90 @@
       height: 100vh;
     }
 
+    /* --- Mobile notice --- */
+    .mobile-notice-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+    }
+    .mobile-notice {
+      max-width: 380px;
+      width: 100%;
+      background: rgba(14,14,22,0.95);
+      border: 1px solid rgba(201,168,76,0.12);
+      border-radius: 20px;
+      padding: 40px 32px 32px;
+      text-align: center;
+    }
+    .mobile-notice-icon {
+      font-size: 2.2rem;
+      margin-bottom: 18px;
+      opacity: 0.8;
+    }
+    .mobile-notice h2 {
+      font-family: var(--font);
+      font-size: 1.8rem;
+      font-weight: 600;
+      color: rgba(232,228,220,0.88);
+      letter-spacing: -0.02em;
+      margin: 0 0 12px;
+    }
+    .mobile-notice p {
+      font-family: var(--sans);
+      font-size: 1.2rem;
+      color: rgba(232,228,220,0.5);
+      line-height: 1.65;
+      margin: 0 0 28px;
+    }
+    .mobile-notice-btn {
+      background: rgba(201,168,76,0.12);
+      border: 1px solid rgba(201,168,76,0.18);
+      border-radius: 12px;
+      color: rgba(232,228,220,0.8);
+      font-family: var(--sans);
+      font-size: 1.2rem;
+      font-weight: 500;
+      padding: 14px 36px;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.01em;
+    }
+    .mobile-notice-btn:hover {
+      background: rgba(201,168,76,0.2);
+      color: rgba(232,228,220,0.95);
+    }
+
+    .mobile-header {
+      display: none;
+      text-align: center;
+      padding: 60px 24px 12px;
+      background: #000;
+    }
+    .mobile-header h1 {
+      font-size: 2.8rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: transparent;
+      background: linear-gradient(165deg, #f0d878 0%, #c9a84c 40%, #8a6d2e 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      line-height: 1.1;
+      margin: 0 0 0.3rem;
+    }
+    .mobile-header .sub {
+      font-size: 1.1rem;
+      color: rgba(232,228,220,0.7);
+      margin: 0 auto;
+      letter-spacing: 0.01em;
+    }
+
     /* --- Splash intro --- */
     .splash {
       position: fixed;
@@ -872,10 +956,10 @@
     .reader-topbar-title {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 24px;
     }
     .reader-topbar-title .cd-trigger {
-      font-size: 1.05rem;
+      font-size: 1.3rem;
       font-weight: 700;
       letter-spacing: -0.02em;
       color: rgba(232,228,220,0.88);
@@ -927,7 +1011,7 @@
       background: none;
     }
     .reader-chapter-nav .cd-trigger {
-      font-size: 0.72rem;
+      font-size: 0.88rem;
       font-weight: 500;
       color: rgba(232,228,220,0.45);
       letter-spacing: 0.02em;
@@ -1065,7 +1149,7 @@
     }
     .reader-tl-label {
       font-family: var(--sans);
-      font-size: 0.52rem;
+      font-size: 0.65rem;
       font-weight: 500;
       letter-spacing: 0.06em;
       text-transform: uppercase;
@@ -1084,7 +1168,7 @@
       border: none;
       color: rgba(232,228,220,0.4);
       font-family: var(--sans);
-      font-size: 0.58rem;
+      font-size: 0.72rem;
       font-weight: 500;
       letter-spacing: 0.01em;
       padding: 5px 10px;
@@ -1104,23 +1188,32 @@
       position: absolute;
       top: 0;
       left: 0;
-      right: 0;
+      right: 370px;
       bottom: 0;
       overflow-y: auto;
       padding: 40px 20px 80px;
-      display: flex;
-      justify-content: center;
-      scrollbar-width: thin;
-      scrollbar-color: rgba(201,168,76,0.1) transparent;
-      pointer-events: auto;
+      scrollbar-width: auto;
+      scrollbar-color: rgba(232,228,220,0.15) transparent;
+    }
+    .reader-content::-webkit-scrollbar { width: 8px; }
+    .reader-content::-webkit-scrollbar-track { background: transparent; }
+    .reader-content::-webkit-scrollbar-thumb {
+      background: rgba(232,228,220,0.12);
+      border-radius: 4px;
+    }
+    .reader-content::-webkit-scrollbar-thumb:hover {
+      background: rgba(232,228,220,0.25);
     }
     .reader-inner {
       width: 100%;
       max-width: 660px;
+      margin-left: auto;
+      margin-right: auto;
+      transform: translateX(185px);
     }
     .reader-chapter-heading {
       font-family: var(--sans);
-      font-size: 0.7rem;
+      font-size: 0.85rem;
       font-weight: 600;
       color: rgba(201,168,76,0.45);
       letter-spacing: 0.12em;
@@ -1204,7 +1297,7 @@
     .reader-chat-header button:hover { color: rgba(232,228,220,0.5); }
     .reader-chat-header button svg { width: 13px; height: 13px; }
     .reader-chat-header .cd-trigger {
-      font-size: 0.65rem;
+      font-size: 0.95rem;
       color: rgba(232,228,220,0.45);
     }
     .reader-chat-header .cd-menu {
@@ -1353,7 +1446,7 @@
     }
     .reader-chat-empty {
       color: rgba(232,228,220,0.4);
-      font-size: 0.74rem;
+      font-size: 0.88rem;
       text-align: center;
       margin-top: 40%;
       line-height: 1.8;
@@ -1410,8 +1503,8 @@
       border-radius: 8px;
       color: rgba(232,228,220,0.65);
       font-family: var(--font);
-      font-size: 0.74rem;
-      padding: 9px 12px;
+      font-size: 0.88rem;
+      padding: 11px 14px;
       outline: none;
       resize: none;
       max-height: 96px;
@@ -1442,7 +1535,7 @@
     .reader-chat-input-wrap button svg { width: 14px; height: 14px; }
     .reader-chat-disclaimer {
       padding: 0 16px 10px;
-      font-size: 0.48rem;
+      font-size: 0.68rem;
       color: rgba(232,228,220,0.3);
       text-align: center;
       letter-spacing: 0.02em;
@@ -2531,11 +2624,157 @@
     }
 
     @media (max-width: 800px) {
-      .hero-header h1 { font-size: 1.3rem; }
-      .hero-header .sub { font-size: 0.6rem; padding: 0 1rem; }
-      .sphere-section { height: 70vh; min-height: 400px; }
-      .home-chat { padding: 12px 16px 40px; }
-      .home-chat-title { font-size: 1.1rem; }
+      .sphere-section { display: none !important; }
+      .mobile-header { display: block !important; }
+      .page-wrap { height: auto; min-height: 100vh; }
+
+      /* 1. Mobile header */
+      .mobile-header { padding: 48px 28px 80px !important; }
+      .mobile-header h1 { font-size: 3.2rem !important; }
+      .mobile-header .sub { font-size: 1.4rem !important; }
+
+      /* 2+3. Homepage chat section — fatter bar, bigger everything */
+      .home-chat {
+        flex: 1;
+        padding: 0 28px 60px;
+        justify-content: flex-start;
+      }
+      .home-chat-inner {
+        max-width: 100%;
+        opacity: 1 !important;
+        animation: none !important;
+      }
+      .home-chat-welcome { margin-bottom: 36px; }
+      .home-chat-title { font-size: 3rem !important; margin-bottom: 36px !important; }
+      .home-read-btn { font-size: 1.8rem !important; padding: 22px 52px !important; border-radius: 16px !important; }
+      .home-read-btn svg { width: 26px !important; height: 26px !important; }
+      .home-mode-toggle { border-radius: 14px !important; }
+      .home-mode-toggle button { font-size: 1.6rem !important; padding: 14px 40px !important; border-radius: 12px !important; }
+      .home-chat-input-wrap #home-chat-input {
+        font-size: 1.6rem !important;
+        padding: 28px 74px 28px 24px !important;
+        border-radius: 18px !important;
+        min-height: 70px !important;
+      }
+      .home-chat-send { width: 56px !important; height: 56px !important; right: 10px !important; }
+      .home-chat-send svg { width: 24px !important; height: 24px !important; }
+      .home-search-footer,
+      .home-chat-input-footer { font-size: 1.4rem !important; gap: 16px !important; margin-bottom: 14px !important; }
+      .home-search-mode-toggle button { font-size: 1.4rem !important; padding: 10px 24px !important; border-radius: 10px !important; }
+      .search-filter-btn { font-size: 1.4rem !important; padding: 10px 20px !important; border-radius: 10px !important; }
+      .search-filter-btn svg { width: 18px !important; height: 18px !important; }
+      .stats-info-btn { width: 30px !important; height: 30px !important; font-size: 1rem !important; }
+      .cd-trigger { font-size: 1.4rem !important; }
+      .cd-menu { font-size: 1.3rem !important; }
+      .cd-item { padding: 14px 18px !important; font-size: 1.3rem !important; }
+
+      /* 4. Footer — BibleVerse · © 2026 only */
+      .home-footer { position: fixed; bottom: 16px; font-size: 1.1rem !important; }
+      .home-footer .mobile-hide { display: none !important; }
+
+      /* 5. Filter modal — much larger text and proper toggle sizing */
+      .search-filter-dropdown {
+        font-size: 1.4rem !important;
+        padding: 28px !important;
+        max-width: 92vw !important;
+      }
+      .sfd-section-title { font-size: 1.5rem !important; margin-bottom: 12px !important; }
+      .sfd-book { font-size: 1.3rem !important; padding: 12px 16px !important; }
+      .sfd-book-swatch { width: 14px !important; height: 14px !important; }
+      .sfd-track { width: 56px !important; height: 30px !important; border-radius: 15px !important; }
+      .sfd-track::after { width: 24px !important; height: 24px !important; top: 3px !important; left: 3px !important; }
+      .sfd-track.on::after { transform: translateX(26px) !important; }
+      .sfd-track.partial::after { transform: translateX(13px) !important; }
+      #sfd-done { font-size: 1.4rem !important; padding: 14px 40px !important; border-radius: 12px !important; }
+      .sfd-divider-v { width: 1px !important; }
+
+      /* 6. Splash cross and Bible emoji larger */
+      .splash-cross { width: 120px !important; }
+      .splash-title { font-size: 3.6rem !important; }
+      .splash-subtitle { font-size: 1.2rem !important; }
+      .rt-bible { width: 220px !important; height: 290px !important; }
+      .rt-label { font-size: 0.9rem !important; }
+      .rt-label-sub { font-size: 0.6rem !important; }
+      .rt-cross-icon { width: 38px !important; height: 38px !important; }
+
+      /* Full-screen chat overlay */
+      .home-chat.chatting .home-chat-input-wrap #home-chat-input {
+        font-size: 1.4rem !important;
+        padding: 24px 64px 24px 20px !important;
+        min-height: 66px !important;
+      }
+      .chat-msg { font-size: 1.3rem !important; line-height: 1.7 !important; }
+      .chat-msg-label { font-size: 0.95rem !important; }
+
+      /* 7. Reader topbar — reorganize for mobile */
+      .reader-topbar {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        padding: 14px 20px 12px !important;
+        gap: 8px !important;
+      }
+      .reader-topbar-left {
+        position: static !important;
+        transform: none !important;
+        order: -1;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .reader-topbar-right {
+        position: static !important;
+        transform: none !important;
+        justify-content: flex-end;
+      }
+      .reader-tl-label { font-size: 1rem !important; }
+      .reader-tl-toggle button { font-size: 1rem !important; padding: 8px 16px !important; }
+      .reader-topbar-center {
+        order: 1;
+        align-items: center;
+      }
+      .reader-topbar-title .cd-trigger { font-size: 1.6rem !important; font-weight: 700 !important; }
+      .reader-topbar-title .cd-chev { width: 12px !important; height: 8px !important; }
+      .reader-chapter-nav .cd-trigger { font-size: 1.2rem !important; }
+      .reader-chapter-nav > button { width: 36px !important; height: 36px !important; font-size: 1.4rem !important; }
+      .reader-close { width: 40px !important; height: 40px !important; font-size: 1.2rem !important; }
+
+      /* Reader body */
+      .reader-body { flex-direction: column !important; }
+      .reader-content { position: relative !important; right: 0 !important; flex: 1; min-height: 40vh; }
+      .reader-inner { padding: 0 22px !important; font-size: 1.25rem !important; transform: none !important; }
+      .reader-chapter-heading { font-size: 1.4rem !important; }
+      .reader-verse { font-size: 1.25rem !important; line-height: 1.85 !important; }
+
+      /* 8. Reader chat — much larger everything */
+      .reader-chat {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-height: 45vh;
+        border-left: none !important;
+        border-top: 1px solid rgba(201,168,76,0.06);
+      }
+      .reader-chat-header {
+        min-width: 0 !important;
+        padding: 14px 20px !important;
+      }
+      .reader-chat-header span { font-size: 1rem !important; }
+      .reader-chat-header .cd-trigger { font-size: 1.2rem !important; }
+      .reader-chat-settings { min-width: 0 !important; }
+      .reader-chat-empty { font-size: 1.1rem !important; }
+      .reader-chat-disclaimer { font-size: 0.9rem !important; }
+      .reader-chat .chat-msg { font-size: 1.2rem !important; }
+      .reader-chat .chat-msg-label { font-size: 0.9rem !important; }
+      .reader-chat textarea {
+        font-size: 1.3rem !important;
+        padding: 18px 56px 18px 18px !important;
+        min-height: 60px !important;
+      }
+      .reader-chat .home-chat-send,
+      .reader-chat .chat-send {
+        width: 48px !important;
+        height: 48px !important;
+      }
+
       .module-grid { grid-template-columns: 1fr; }
       .methodology { padding: 2.5rem 1.2rem; }
     }
@@ -2589,13 +2828,34 @@
 })();
 </script>
 
+<!-- Mobile notice -->
+<div class="mobile-notice-overlay" id="mobile-notice">
+  <div class="mobile-notice">
+    <div class="mobile-notice-icon">&#9888;</div>
+    <h2>Desktop recommended</h2>
+    <p>The mobile experience is under active development. For full functionality, please use the desktop version.</p>
+    <button class="mobile-notice-btn" id="mobile-notice-dismiss">Continue anyway</button>
+  </div>
+</div>
+<script>
+(function(){
+  if (window.innerWidth <= 800) {
+    var overlay = document.getElementById('mobile-notice');
+    setTimeout(function(){ overlay.style.display = 'flex'; }, 4200);
+    document.getElementById('mobile-notice-dismiss').addEventListener('click', function(){
+      overlay.style.display = 'none';
+    });
+  }
+})();
+</script>
+
 <div class="page-wrap">
 <!-- Sphere (full viewport — title, search, stats overlay the top) -->
 <div class="sphere-section">
   <div class="hero-header">
     <h1>BibleVerse <span style="font-weight:300;">— The Modern Bible Interface</span></h1>
     <p class="sub">
-      Efficient exploration of humanity's most consequential text.
+      Efficient exploration of humanity's most consequential text
     </p>
   </div>
   <div class="sphere-stats-float">
@@ -2608,6 +2868,12 @@
 
 
 
+</div>
+
+<!-- Mobile-only header (hidden on desktop) -->
+<div class="mobile-header">
+  <h1>BibleVerse <span style="font-weight:300;">— The Modern Bible Interface</span></h1>
+  <p class="sub">Efficient exploration of humanity's most consequential text</p>
 </div>
 
 <!-- Homepage AI Chat -->
@@ -2687,7 +2953,7 @@
 </div>
 
 <div class="home-footer">
-  BibleVerse &nbsp;&nbsp;&middot;&nbsp;&nbsp; built by <a href="https://gregorykyro.com" target="_blank">Gregory W. Kyro, Ph.D.</a> &nbsp;&nbsp;&middot;&nbsp;&nbsp; © 2026
+  BibleVerse <span class="mobile-hide">&nbsp;&nbsp;&middot;&nbsp;&nbsp; built by <a href="https://gregorykyro.com" target="_blank">Gregory W. Kyro, Ph.D.</a></span> &nbsp;&nbsp;&middot;&nbsp;&nbsp; © 2026
 </div>
 
 <!-- Methodology modal -->
@@ -3061,7 +3327,6 @@ document.getElementById('chat-methodology-overlay').addEventListener('click', fu
             <div id="cd-book-list"></div>
           </div>
         </div>
-        <span class="rt-dot"></span>
         <div class="reader-chapter-nav">
           <button id="reader-prev">&#x2039;</button>
           <div class="cd-wrap" id="cd-chapter">

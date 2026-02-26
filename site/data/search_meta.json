@@ -1,0 +1,1 @@
+{"n_verses": 31102, "dim": 768, "dtype": "uint8", "model": "odunola/sentence-transformers-bible-reference-final", "note": "L2-normalised, then affine-quantised [-1,1]\u2192[0,255]"}

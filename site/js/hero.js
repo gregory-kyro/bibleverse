@@ -1653,7 +1653,10 @@
     homeMode = mode;
     homeModeSearchBtn.classList.toggle('active', mode === 'search');
     homeModeChatBtn.classList.toggle('active', mode === 'chat');
-    homeChatInput.placeholder = mode === 'search' ? 'Enter any text to find the most relevant verses or passages in the Bible...' : 'Ask anything about the Bible...';
+    const isMobile = window.innerWidth <= 800;
+    homeChatInput.placeholder = mode === 'search'
+      ? (isMobile ? 'Enter any text...' : 'Enter any text to find the most relevant verses or passages in the Bible...')
+      : (isMobile ? 'Ask anything...' : 'Ask anything about the Bible...');
     homeSearchFooter.style.display = mode === 'search' ? '' : 'none';
     homeChatFooter.style.display = mode === 'chat' ? '' : 'none';
     if (mode === 'search') {
