@@ -94,6 +94,126 @@
       color: rgba(232,228,220,0.95);
     }
 
+    /* --- Onboarding walkthrough --- */
+    .walkthrough-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 90000;
+    }
+    .walkthrough-overlay.active { display: block; }
+    .walkthrough-highlight {
+      position: fixed;
+      border-radius: 12px;
+      box-shadow: 0 0 0 9999px rgba(0,0,0,0.6);
+      z-index: 90001;
+      pointer-events: none;
+      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .walkthrough-tooltip {
+      position: absolute;
+      z-index: 90002;
+      max-width: 320px;
+      background: rgba(18,18,28,0.97);
+      border: 1px solid rgba(201,168,76,0.18);
+      border-radius: 14px;
+      padding: 22px 26px 20px;
+      box-shadow: 0 12px 48px rgba(0,0,0,0.5);
+      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    .walkthrough-tooltip.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .walkthrough-tooltip::before {
+      content: '';
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: rgba(18,18,28,0.97);
+      border-top: 1px solid rgba(201,168,76,0.18);
+      border-left: 1px solid rgba(201,168,76,0.18);
+      transform: rotate(45deg);
+    }
+    .walkthrough-tooltip.arrow-top::before {
+      top: -7px;
+      left: var(--arrow-left, 50%);
+      margin-left: -6px;
+    }
+    .walkthrough-tooltip.arrow-bottom::before {
+      bottom: -7px;
+      left: var(--arrow-left, 50%);
+      margin-left: -6px;
+      transform: rotate(225deg);
+    }
+    .walkthrough-step-label { display: none; }
+    .walkthrough-title {
+      font-family: var(--font);
+      font-size: 1rem;
+      font-weight: 600;
+      color: rgba(232,228,220,0.9);
+      margin-bottom: 8px;
+      letter-spacing: -0.01em;
+    }
+    .walkthrough-desc {
+      font-family: var(--sans);
+      font-size: 0.78rem;
+      color: rgba(232,228,220,0.5);
+      line-height: 1.6;
+      margin-bottom: 18px;
+    }
+    .walkthrough-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .walkthrough-skip {
+      background: none;
+      border: none;
+      color: rgba(232,228,220,0.3);
+      font-family: var(--sans);
+      font-size: 0.72rem;
+      cursor: pointer;
+      padding: 4px 0;
+      transition: color 0.2s;
+    }
+    .walkthrough-skip:hover { color: rgba(232,228,220,0.6); }
+    .walkthrough-next {
+      background: rgba(201,168,76,0.14);
+      border: 1px solid rgba(201,168,76,0.22);
+      border-radius: 8px;
+      color: rgba(232,228,220,0.85);
+      font-family: var(--sans);
+      font-size: 0.78rem;
+      font-weight: 500;
+      padding: 8px 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.01em;
+    }
+    .walkthrough-next:hover {
+      background: rgba(201,168,76,0.22);
+      color: #e8e4dc;
+    }
+    .walkthrough-dots {
+      display: flex;
+      gap: 6px;
+    }
+    .walkthrough-dots span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(232,228,220,0.15);
+      transition: all 0.3s;
+    }
+    .walkthrough-dots span.active {
+      background: rgba(201,168,76,0.7);
+      width: 18px;
+      border-radius: 3px;
+    }
+
     .mobile-header {
       display: none;
       text-align: center;
@@ -535,6 +655,7 @@
       margin-bottom: 8px;
       cursor: pointer;
       transition: border-color 0.15s, background 0.15s;
+      animation: srItemIn 0.4s ease both;
     }
     .sr-item:hover {
       border-color: rgba(201,168,76,0.15);
@@ -1747,6 +1868,33 @@
     .sphere-edge-panel.collapsed h4 { margin-bottom: 0; }
 
     /* --- Viewer mode (immersive zoom) --- */
+    .page-wrap.search-active .sphere-section {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0,0,0,0);
+      pointer-events: none;
+    }
+    .page-wrap.search-active .home-chat {
+      flex: 1;
+      height: 100vh;
+      justify-content: flex-start;
+      padding-top: 40px;
+      overflow: hidden;
+    }
+    .page-wrap.search-active .home-chat-inner {
+      max-height: calc(100vh - 60px);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .page-wrap.search-active #home-search-results {
+      max-height: none;
+      flex: 1;
+      overflow-y: auto;
+      padding-bottom: 80px;
+    }
     .sphere-section .hero-header,
     .sphere-section .sphere-stats-float,
     .sphere-section .right-panels {
@@ -1898,7 +2046,37 @@
       max-height: 50vh;
       scrollbar-width: thin;
       scrollbar-color: rgba(201,168,76,0.1) transparent;
+      animation: srFadeIn 0.5s ease both;
     }
+    @keyframes srFadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes srItemIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .search-back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: none;
+      border: 1px solid rgba(201,168,76,0.15);
+      border-radius: 8px;
+      color: rgba(232,228,220,0.5);
+      font-family: var(--sans);
+      font-size: 0.68rem;
+      padding: 6px 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 12px;
+    }
+    .search-back-btn:hover {
+      color: rgba(232,228,220,0.8);
+      border-color: rgba(201,168,76,0.3);
+      background: rgba(201,168,76,0.06);
+    }
+    .search-back-btn svg { opacity: 0.5; }
     #home-search-status {
       text-align: center;
       font-size: 0.62rem;
@@ -2902,6 +3080,10 @@
 
     <div class="home-chat-messages" id="home-chat-messages" style="display:none;"></div>
     <div id="home-search-results" style="display:none;">
+      <button class="search-back-btn" id="search-back-btn">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M10 2L4 8l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Back
+      </button>
       <div id="home-search-status"></div>
       <div id="home-search-results-desc"></div>
       <div id="home-search-results-list"></div>
@@ -2941,7 +3123,7 @@
         <button class="stats-info-btn" id="chat-info-btn" title="About chat">i</button>
       </div>
       <div class="home-chat-input-wrap">
-        <input type="text" id="home-chat-input" placeholder="Enter any text to find the most relevant verses or passages in the Bible..." autocomplete="off" spellcheck="false">
+        <input type="text" id="home-chat-input" placeholder="Enter any word, phrase, or idea to find the most relevant verses and passages in the Bible..." autocomplete="off" spellcheck="false">
         <button id="home-chat-send" class="home-chat-send" aria-label="Send">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 14V2M8 2L3 7M8 2l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
@@ -3423,6 +3605,159 @@ document.getElementById('chat-methodology-overlay').addEventListener('click', fu
     </div>
   </div>
 </div>
+<!-- Onboarding walkthrough -->
+<div class="walkthrough-overlay" id="wt-overlay"></div>
+<div class="walkthrough-highlight" id="wt-highlight" style="display:none;"></div>
+<div class="walkthrough-tooltip" id="wt-tooltip">
+  <div class="walkthrough-step-label" id="wt-step-label"></div>
+  <div class="walkthrough-title" id="wt-title"></div>
+  <div class="walkthrough-desc" id="wt-desc"></div>
+  <div class="walkthrough-actions">
+    <button class="walkthrough-skip" id="wt-skip">Skip</button>
+    <div class="walkthrough-dots" id="wt-dots"></div>
+    <button class="walkthrough-next" id="wt-next">Next</button>
+  </div>
+</div>
+<script>
+(function () {
+  if (localStorage.getItem('bv_walkthrough_done')) return;
+  if (window.innerWidth <= 800) return;
+
+  var steps = [
+    {
+      target: 'home-mode-search',
+      title: 'Search',
+      desc: 'Enter any word, phrase, or idea to find the most relevant verses and passages in the Bible.',
+      arrow: 'top',
+      offsetY: 12
+    },
+    {
+      target: 'home-mode-chat',
+      title: 'Chat',
+      desc: 'Ask questions about any verse, topic, or theme and get responses from your own personal AI assistant.',
+      arrow: 'top',
+      offsetY: 12
+    },
+    {
+      target: 'hc-read-bible',
+      title: 'Read the Bible with AI',
+      desc: 'Read the Bible alongside your own personal AI assistant for real-time dialogue.',
+      arrow: 'bottom',
+      offsetY: -12
+    }
+  ];
+
+  var current = 0;
+  var overlay = document.getElementById('wt-overlay');
+  var highlight = document.getElementById('wt-highlight');
+  var tooltip = document.getElementById('wt-tooltip');
+  var titleEl = document.getElementById('wt-title');
+  var descEl = document.getElementById('wt-desc');
+  var labelEl = document.getElementById('wt-step-label');
+  var dotsEl = document.getElementById('wt-dots');
+  var nextBtn = document.getElementById('wt-next');
+  var skipBtn = document.getElementById('wt-skip');
+
+  function buildDots() {
+    dotsEl.innerHTML = '';
+    for (var i = 0; i < steps.length; i++) {
+      var d = document.createElement('span');
+      if (i === current) d.className = 'active';
+      dotsEl.appendChild(d);
+    }
+  }
+
+  function showStep(idx) {
+    current = idx;
+    var step = steps[idx];
+    var el = document.getElementById(step.target);
+    if (!el) { finish(); return; }
+
+    var rect = el.getBoundingClientRect();
+    var pad = 8;
+
+    highlight.style.display = 'block';
+    highlight.style.left = (rect.left - pad) + 'px';
+    highlight.style.top = (rect.top - pad) + 'px';
+    highlight.style.width = (rect.width + pad * 2) + 'px';
+    highlight.style.height = (rect.height + pad * 2) + 'px';
+
+    titleEl.textContent = step.title;
+    descEl.textContent = step.desc;
+    nextBtn.textContent = idx === steps.length - 1 ? 'Get started' : 'Next';
+    buildDots();
+
+    tooltip.className = 'walkthrough-tooltip arrow-' + step.arrow;
+
+    var tw = 320;
+    var tx = rect.left + rect.width / 2 - tw / 2;
+    tx = Math.max(16, Math.min(tx, window.innerWidth - tw - 16));
+
+    var ty;
+    if (step.arrow === 'top') {
+      ty = rect.bottom + pad + step.offsetY;
+    } else {
+      ty = rect.top - pad + step.offsetY;
+    }
+
+    tooltip.style.left = tx + 'px';
+
+    if (step.arrow === 'top') {
+      tooltip.style.top = ty + 'px';
+      tooltip.style.bottom = 'auto';
+    } else {
+      tooltip.style.bottom = (window.innerHeight - ty) + 'px';
+      tooltip.style.top = 'auto';
+    }
+
+    var arrowLeft = rect.left + rect.width / 2 - tx;
+    arrowLeft = Math.max(20, Math.min(arrowLeft, tw - 20));
+    tooltip.style.setProperty('--arrow-left', arrowLeft + 'px');
+
+    requestAnimationFrame(function () {
+      tooltip.classList.add('visible');
+    });
+  }
+
+  function finish() {
+    tooltip.classList.remove('visible');
+    overlay.classList.remove('active');
+    highlight.style.display = 'none';
+    tooltip.style.display = 'none';
+    localStorage.setItem('bv_walkthrough_done', '1');
+    setTimeout(function () {
+      overlay.remove();
+      highlight.remove();
+      tooltip.remove();
+    }, 500);
+  }
+
+  nextBtn.addEventListener('click', function () {
+    tooltip.classList.remove('visible');
+    if (current < steps.length - 1) {
+      setTimeout(function () { showStep(current + 1); }, 300);
+    } else {
+      finish();
+    }
+  });
+
+  skipBtn.addEventListener('click', finish);
+  overlay.addEventListener('click', finish);
+
+  // Start walkthrough after sphere loads
+  function tryStart() {
+    var el = document.getElementById(steps[0].target);
+    if (el && el.offsetParent !== null) {
+      overlay.classList.add('active');
+      showStep(0);
+    } else {
+      setTimeout(tryStart, 500);
+    }
+  }
+  setTimeout(tryStart, 5500);
+})();
+</script>
+
 <script src="js/common.js"></script>
 <script src="js/hero.js"></script>
 </body>

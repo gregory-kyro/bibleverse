@@ -475,7 +475,7 @@
       books.forEach(bn => { if (nowOn) searchFilterBooks.add(bn); else searchFilterBooks.delete(bn); });
       booksEl.querySelectorAll('.sfd-book').forEach(row => row.classList.toggle('off', !nowOn));
       updateFilterLabel();
-      if (searchInput.value.trim().length >= 3) doSearch();
+      if (searchInput.value.trim().length >= 1) doSearch();
     });
 
     booksEl.addEventListener('click', (e) => { e.stopPropagation(); });
@@ -490,7 +490,7 @@
         row.classList.toggle('off', wasOn);
         syncTestamentTrack(testament);
         updateFilterLabel();
-        if (searchInput.value.trim().length >= 3) doSearch();
+        if (searchInput.value.trim().length >= 1) doSearch();
       });
       booksEl.appendChild(row);
     });
@@ -506,37 +506,77 @@
   let searchReady = false;
   let searchLoading = false;
 
+  function showSearchError(msg) {
+    const el = document.getElementById('home-chat-input');
+    if (el) { el.placeholder = msg; el.style.color = 'rgba(220,80,80,0.6)'; }
+  }
+
+  const defaultPlaceholder = searchInput.placeholder;
+  let searchLoadingDots = null;
+
+  function showSearchLoading() {
+    const el = searchInput;
+    let dots = 0;
+    el.placeholder = 'Loading search model';
+    el.disabled = true;
+    searchLoadingDots = setInterval(() => {
+      dots = (dots + 1) % 4;
+      el.placeholder = 'Loading search model' + '.'.repeat(dots);
+    }, 400);
+  }
+
+  function hideSearchLoading() {
+    if (searchLoadingDots) { clearInterval(searchLoadingDots); searchLoadingDots = null; }
+    searchInput.disabled = false;
+    searchInput.placeholder = defaultPlaceholder;
+  }
+
   async function loadSearchAssets() {
     if (searchReady || searchLoading) return;
     searchLoading = true;
-    searchStatus.innerHTML = '<span class="search-dot"></span>Loading 109M-parameter Bible transformer…';
+    showSearchLoading();
 
     try {
+      const embResp = fetch('data/search_embeddings.bin').then(r => {
+        if (!r.ok) throw new Error('search_embeddings.bin: ' + r.status);
+        return r.arrayBuffer();
+      });
+      const passEmbResp = fetch('data/passage_embeddings.bin').then(r => {
+        if (!r.ok) throw new Error('passage_embeddings.bin: ' + r.status);
+        return r.arrayBuffer();
+      });
+      const passJsonResp = fetch('data/passages.json').then(r => {
+        if (!r.ok) throw new Error('passages.json: ' + r.status);
+        return r.json();
+      });
+
       const [embBuf, passEmbBuf, passJson, bsbJson, transformers] = await Promise.all([
-        fetch('data/search_embeddings.bin').then(r => r.arrayBuffer()),
-        fetch('data/passage_embeddings.bin').then(r => r.arrayBuffer()),
-        fetch('data/passages.json').then(r => r.json()),
-        loadBsb(),
+        embResp, passEmbResp, passJsonResp, loadBsb(),
         import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1'),
       ]);
       verseEmbU8 = new Uint8Array(embBuf);
       passageEmbU8 = new Uint8Array(passEmbBuf);
       passageData = passJson;
 
-      searchStatus.innerHTML = '<span class="search-dot"></span>Initializing ONNX Runtime\u2026';
       transformers.env.allowLocalModels = true;
       transformers.env.allowRemoteModels = false;
-      transformers.env.localModelPath = '';
+      const base = new URL('./', document.baseURI).href;
+      transformers.env.localModelPath = base;
+      if (transformers.env.backends?.onnx?.wasm) {
+        transformers.env.backends.onnx.wasm.numThreads = 1;
+      }
       searchPipeline = await transformers.pipeline('feature-extraction', 'model', {
         local_files_only: true,
         quantized: true,
       });
       searchReady = true;
       searchStatus.innerHTML = '';
+      hideSearchLoading();
     } catch (err) {
       console.error('Search model load failed:', err);
-      searchStatus.innerHTML = 'Model failed to load — check console';
-      searchStatus.style.color = 'rgba(220,80,80,0.6)';
+      hideSearchLoading();
+      showSearchError('Search failed: ' + err.message);
+      searchStatus.innerHTML = '';
     } finally {
       searchLoading = false;
     }
@@ -567,7 +607,7 @@
 
   async function doSearch() {
     const q = searchInput.value.trim();
-    if (q.length < 3) { clearSearch(); return; }
+    if (q.length < 1) { clearSearch(); return; }
     if (!searchReady) {
       await loadSearchAssets();
       if (!searchReady) return;
@@ -599,14 +639,17 @@
     for (const m of shown) { hx.push(m.p.sx); hy.push(m.p.sy); hz.push(m.p.sz); ht.push(`<b>${m.p.ref}</b><br><i>${wrapText(m.p.text, 60)}</i>`); }
     Plotly.restyle(plotEl, { x: [hx], y: [hy], z: [hz], text: [ht] }, [highlightTraceIdx]);
 
+    homeSearchResults.style.display = 'none';
+    void homeSearchResults.offsetHeight;
     homeSearchResults.style.display = 'block';
+    document.querySelector('.page-wrap').classList.add('search-active');
     if (shown.length > 0) {
       searchDesc.innerHTML = 'Ranked by <b style="color:rgba(201,168,76,0.4);">cosine similarity</b> across all 31,102 verse embeddings.';
       searchList.innerHTML = shown.map((m, i) => {
         const pct = Math.max(0, (m.score / maxScore * 100)).toFixed(0);
         const bsbText = (bsb[m.idx] || '').replace(/"/g, '&quot;');
         const displayText = activeTrans === 'bsb' && bsbText ? bsbText : m.p.text;
-        return `<div class="sr-item" data-sx="${m.p.sx}" data-sy="${m.p.sy}" data-sz="${m.p.sz}" data-ref="${m.p.ref}" data-text="${m.p.text.replace(/"/g, '&quot;')}" data-text-bsb="${bsbText}" data-mode="verse" style="cursor:pointer;">` +
+        return `<div class="sr-item" data-sx="${m.p.sx}" data-sy="${m.p.sy}" data-sz="${m.p.sz}" data-ref="${m.p.ref}" data-text="${m.p.text.replace(/"/g, '&quot;')}" data-text-bsb="${bsbText}" data-mode="verse" style="cursor:pointer;animation-delay:${i * 0.04}s;">` +
           `<span class="sr-ref">${i + 1}. ${m.p.ref}</span><span class="sr-score" title="Cosine similarity">${m.score.toFixed(3)}</span>` +
           `<span class="sr-text">${displayText}</span><div class="sr-bar"><div class="sr-bar-fill" style="width:${pct}%"></div></div></div>`;
       }).join('');
@@ -631,7 +674,10 @@
     }
     Plotly.restyle(plotEl, { x: [hx], y: [hy], z: [hz], text: [ht] }, [highlightTraceIdx]);
 
+    homeSearchResults.style.display = 'none';
+    void homeSearchResults.offsetHeight;
     homeSearchResults.style.display = 'block';
+    document.querySelector('.page-wrap').classList.add('search-active');
     if (shown.length > 0) {
       searchDesc.innerHTML = 'Ranked by <b style="color:rgba(201,168,76,0.4);">cosine similarity</b> across ' + passageData.length.toLocaleString() + ' passages.';
       searchList.innerHTML = shown.map((m, i) => {
@@ -642,7 +688,7 @@
         const kjvFull = psg.text.replace(/"/g, '&quot;');
         const rawPreview = activeTrans === 'bsb' && psg.text_bsb ? psg.text_bsb : psg.text;
         const preview = rawPreview.length > 200 ? rawPreview.slice(0, 200) + '\u2026' : rawPreview;
-        return `<div class="sr-item" data-verse-ids='${vids}' data-ref="${psg.ref}" data-title="${psg.title.replace(/"/g, '&quot;')}" data-passage-kjv="${kjvFull}" data-passage-bsb="${bsbFull}" data-mode="passage" style="cursor:pointer;">` +
+        return `<div class="sr-item" data-verse-ids='${vids}' data-ref="${psg.ref}" data-title="${psg.title.replace(/"/g, '&quot;')}" data-passage-kjv="${kjvFull}" data-passage-bsb="${bsbFull}" data-mode="passage" style="cursor:pointer;animation-delay:${i * 0.04}s;">` +
           `<span class="sr-ref">${i + 1}. ${psg.ref}</span><span class="sr-score" title="Cosine similarity">${m.score.toFixed(3)}</span>` +
           `<span class="sr-title">${psg.title}</span>` +
           `<span class="sr-passage-text">${preview}</span>` +
@@ -698,6 +744,7 @@
     homeSearchResults.style.display = 'none';
     searchList.innerHTML = '';
     searchDesc.innerHTML = '';
+    document.querySelector('.page-wrap').classList.remove('search-active');
     Plotly.restyle(plotEl, { x: [[]], y: [[]], z: [[]], text: [[]] }, [highlightTraceIdx]);
     if (!sphereFaded) {
       Plotly.restyle(plotEl, { x: [[]], y: [[]], z: [[]], text: [[]] }, [focusTraceIdx]);
@@ -1640,13 +1687,13 @@
     searchMode = 'verses';
     homeModeVersesBtn.classList.add('active');
     homeModePassagesBtn.classList.remove('active');
-    if (searchInput.value.trim().length >= 3) doSearch();
+    if (searchInput.value.trim().length >= 1) doSearch();
   });
   homeModePassagesBtn.addEventListener('click', () => {
     searchMode = 'passages';
     homeModePassagesBtn.classList.add('active');
     homeModeVersesBtn.classList.remove('active');
-    if (searchInput.value.trim().length >= 3) doSearch();
+    if (searchInput.value.trim().length >= 1) doSearch();
   });
 
   function switchHomeMode(mode) {
@@ -1655,7 +1702,7 @@
     homeModeChatBtn.classList.toggle('active', mode === 'chat');
     const isMobile = window.innerWidth <= 800;
     homeChatInput.placeholder = mode === 'search'
-      ? (isMobile ? 'Enter any text...' : 'Enter any text to find the most relevant verses or passages in the Bible...')
+      ? (isMobile ? 'Enter any text...' : 'Enter any word, phrase, or idea to find the most relevant verses and passages in the Bible...')
       : (isMobile ? 'Ask anything...' : 'Ask anything about the Bible...');
     homeSearchFooter.style.display = mode === 'search' ? '' : 'none';
     homeChatFooter.style.display = mode === 'chat' ? '' : 'none';
@@ -1676,7 +1723,7 @@
   function handleHomeSubmit() {
     if (homeMode === 'search') {
       const q = homeChatInput.value.trim();
-      if (q.length < 3) return;
+      if (q.length < 1) return;
       homeChatWelcome.style.display = 'none';
       doSearch();
     } else {
@@ -1693,6 +1740,19 @@
   });
   homeChatInput.addEventListener('focus', () => {
     if (homeMode === 'search') loadSearchAssets();
+  });
+
+  // Pre-load search assets after splash screen
+  setTimeout(() => loadSearchAssets(), 5500);
+
+  document.getElementById('search-back-btn').addEventListener('click', () => {
+    clearSearch();
+    restoreSphere();
+    startRotation();
+    homeChatWelcome.style.display = '';
+    homeChatInput.value = '';
+    homeChatSendBtn.classList.remove('ready');
+    setTimeout(() => homeChatInput.focus(), 100);
   });
 
   // Read Bible button
