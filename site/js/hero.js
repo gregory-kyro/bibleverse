@@ -1269,9 +1269,9 @@
 
   function buildMsgs() {
     const ctx = getChatContext();
-    const sys = 'You are a Bible study assistant helping someone read ' + ctx.bookName +
-      ', Chapter ' + ctx.chapter + '. Answer based on the chapter text below. ' +
-      'Cite verse numbers. Be accurate and concise.\n\n' + ctx.text;
+    const sys = 'The user is reading ' + ctx.bookName + ', Chapter ' + ctx.chapter +
+      '. Answer from the text below.\n\n' +
+      'Speak with the directness of Dostoevsky and the reverence of the Greek Orthodox tradition. Terse, serious, no pleasantries, no filler. Say exactly what must be said — no more. Cite verse numbers when they are the answer, not decoration. If one sentence suffices, give one sentence. Conciseness is paramount.\n\n' + ctx.text;
     const msgs = [{ role: 'system', content: sys }];
     for (const m of chatHistory) {
       if (m.content) msgs.push({ role: m.role, content: m.content });
@@ -1567,7 +1567,7 @@
   }
 
   function buildHomeMsgs() {
-    const sys = 'You are a knowledgeable Bible study assistant. Answer questions about the Bible with accuracy, citing relevant verses and providing historical and theological context when helpful. Be concise and clear.';
+    const sys = 'Speak with the directness of Dostoevsky and the reverence of the Greek Orthodox tradition. Terse, serious, no pleasantries, no filler. Say exactly what must be said — no more. Cite relevant verses when they are the answer, not decoration. If one sentence suffices, give one sentence. Conciseness is paramount.';
     const msgs = [{ role: 'system', content: sys }];
     for (const m of homeChatHistory) {
       if (m.content) msgs.push({ role: m.role, content: m.content });
