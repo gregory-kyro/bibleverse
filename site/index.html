@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BibleVerse</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23f0d878'/><stop offset='1' stop-color='%23a07828'/></linearGradient></defs><path d='M14 2h4v28h-4zM8 9h16v4H8z' fill='url(%23g)'/></svg>">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
@@ -92,6 +93,13 @@
     .mobile-notice-btn:hover {
       background: rgba(201,168,76,0.2);
       color: rgba(232,228,220,0.95);
+    }
+    .mobile-notice-url {
+      font-family: var(--mono);
+      font-size: 0.9rem;
+      color: rgba(201,168,76,0.45);
+      letter-spacing: 0.04em;
+      margin-top: 8px;
     }
 
     /* --- Onboarding walkthrough --- */
@@ -214,28 +222,72 @@
       border-radius: 3px;
     }
 
-    .mobile-header {
+    .mobile-header { display: none; }
+
+    /* --- Mobile top bar (ChatGPT-style) --- */
+    .mobile-topbar {
       display: none;
-      text-align: center;
-      padding: 60px 24px 12px;
-      background: #000;
+      align-items: center;
+      padding: 14px 18px;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
     }
-    .mobile-header h1 {
-      font-size: 2.8rem;
-      font-weight: 700;
-      letter-spacing: -0.03em;
-      color: transparent;
-      background: linear-gradient(165deg, #f0d878 0%, #c9a84c 40%, #8a6d2e 100%);
-      -webkit-background-clip: text;
-      background-clip: text;
-      line-height: 1.1;
-      margin: 0 0 0.3rem;
-    }
-    .mobile-header .sub {
-      font-size: 1.1rem;
+    .mobile-topbar-book {
+      background: none;
+      border: none;
       color: rgba(232,228,220,0.7);
-      margin: 0 auto;
-      letter-spacing: 0.01em;
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 8px;
+      transition: color 0.2s, background 0.2s;
+    }
+    .mobile-topbar-book:active {
+      background: rgba(255,255,255,0.06);
+      color: rgba(201,168,76,0.9);
+    }
+    .mobile-topbar-title {
+      flex: 1;
+      text-align: center;
+      font-family: var(--font);
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: rgba(232,228,220,0.85);
+    }
+    .mobile-topbar-spacer { width: 34px; }
+
+    /* --- Mobile model label --- */
+    .mobile-model-label {
+      display: none;
+      font-family: var(--sans);
+      font-size: 0.75rem;
+      color: rgba(232,228,220,0.35);
+      letter-spacing: 0.03em;
+      margin-bottom: 6px;
+    }
+
+    /* --- Mobile suggestion chips --- */
+    .mobile-suggestions { display: none; }
+    .mobile-chip {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      color: rgba(232,228,220,0.7);
+      font-family: var(--sans);
+      font-size: 0.85rem;
+      padding: 10px 16px;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+      white-space: nowrap;
+    }
+    .mobile-chip:active {
+      background: rgba(201,168,76,0.1);
+      border-color: rgba(201,168,76,0.2);
     }
 
     /* --- Splash intro --- */
@@ -1371,6 +1423,51 @@
       color: rgba(201,168,76,0.7);
     }
 
+    /* --- Reader selection tooltip --- */
+    .reader-sel-tooltip {
+      position: absolute;
+      z-index: 1000;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(4px) scale(0.96);
+      transition: opacity 0.18s ease, transform 0.18s ease;
+    }
+    .reader-sel-tooltip.visible {
+      pointer-events: auto;
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    .reader-sel-tooltip button {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border: 1px solid rgba(201,168,76,0.18);
+      border-radius: 10px;
+      background: rgba(18,16,22,0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      color: rgba(232,228,220,0.85);
+      font-family: var(--sans);
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      white-space: nowrap;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.45), 0 0 0 0.5px rgba(201,168,76,0.08);
+      transition: all 0.15s ease;
+    }
+    .reader-sel-tooltip button:hover {
+      background: rgba(28,24,36,0.92);
+      border-color: rgba(201,168,76,0.32);
+      color: rgba(232,228,220,0.95);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.5), 0 0 0 0.5px rgba(201,168,76,0.15);
+    }
+    .reader-sel-tooltip button svg {
+      opacity: 0.7;
+      color: rgba(201,168,76,0.8);
+    }
+
     /* --- Reader chat panel --- */
     .reader-body {
       position: relative;
@@ -1489,11 +1586,11 @@
     }
     .rcml-sub {
       font-family: var(--sans);
-      font-size: 0.56rem;
+      font-size: 0.72rem;
       color: rgba(232,228,220,0.45);
       letter-spacing: 0.01em;
       text-align: center;
-      max-width: 280px;
+      max-width: 340px;
       line-height: 1.65;
     }
     .reader-chat-settings {
@@ -1608,6 +1705,14 @@
     }
     .chat-bubble strong { color: rgba(232,228,220,0.85); font-weight: 600; }
     .chat-bubble em { color: rgba(201,168,76,0.6); font-style: italic; }
+    .chat-typing-dots { display: flex; gap: 4px; padding: 4px 0; }
+    .chat-typing-dots span {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: rgba(201,168,76,0.5);
+      animation: rcmlPulse 1.4s ease-in-out infinite;
+    }
+    .chat-typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .chat-typing-dots span:nth-child(3) { animation-delay: 0.4s; }
     .reader-chat-input-wrap {
       display: flex;
       gap: 8px;
@@ -1663,6 +1768,74 @@
       line-height: 1.6;
       min-width: 370px;
       flex-shrink: 0;
+    }
+
+    /* --- Reader model picker --- */
+    .reader-model-picker {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      padding: 32px 20px;
+      animation: rmpFadeIn 0.4s ease both;
+    }
+    @keyframes rmpFadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .rmp-label {
+      font-family: var(--font);
+      font-size: 0.78rem;
+      color: rgba(232,228,220,0.45);
+      margin-bottom: 18px;
+      letter-spacing: 0.01em;
+    }
+    .rmp-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+    }
+    .rmp-card {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+      padding: 14px 16px;
+      background: rgba(201,168,76,0.02);
+      border: 1px solid rgba(201,168,76,0.08);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      text-align: left;
+    }
+    .rmp-card:hover {
+      background: rgba(201,168,76,0.05);
+      border-color: rgba(201,168,76,0.18);
+      transform: translateY(-1px);
+    }
+    .rmp-card:active { transform: translateY(0); }
+    .rmp-card-name {
+      font-family: var(--font);
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: rgba(232,228,220,0.85);
+      letter-spacing: -0.01em;
+    }
+    .rmp-card-desc {
+      font-family: var(--sans);
+      font-size: 0.58rem;
+      color: rgba(232,228,220,0.35);
+      line-height: 1.4;
+    }
+    .rmp-hint {
+      margin-top: 20px;
+      font-family: var(--sans);
+      font-size: 0.52rem;
+      color: rgba(232,228,220,0.18);
+      text-align: center;
+      line-height: 1.5;
     }
 
     /* --- Sphere section --- */
@@ -1968,6 +2141,12 @@
       top: calc(100% + 4px);
       bottom: auto;
     }
+    .home-chat.chatting .home-chat-model .cd-menu {
+      top: auto;
+      bottom: calc(100% + 6px);
+      border-radius: 10px;
+      box-shadow: 0 -4px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(232,228,220,0.06);
+    }
     .home-chat-input-footer {
       display: flex;
       align-items: center;
@@ -2055,6 +2234,52 @@
     @keyframes srItemIn {
       from { opacity: 0; transform: translateY(6px); }
       to { opacity: 1; transform: translateY(0); }
+    }
+    .search-loading-bar {
+      display: none;
+      width: 100%;
+      max-width: 680px;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 0;
+    }
+    .search-loading-bar.active { display: flex; }
+    .search-loading-bar.active ~ .home-chat-input-area { display: none !important; }
+    .search-loading-dots {
+      display: flex;
+      gap: 6px;
+    }
+    .search-loading-dots span {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: rgba(201,168,76,0.7);
+      animation: rcmlPulse 1.4s ease-in-out infinite;
+    }
+    .search-loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .search-loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+    .search-loading-text {
+      font-family: var(--sans);
+      font-size: 0.68rem;
+      font-weight: 500;
+      color: rgba(232,228,220,0.5);
+      letter-spacing: 0.02em;
+    }
+    .search-loading-track {
+      width: 60%;
+      max-width: 200px;
+      height: 2px;
+      background: rgba(232,228,220,0.06);
+      border-radius: 1px;
+      overflow: hidden;
+    }
+    .search-loading-fill {
+      height: 100%;
+      width: 0%;
+      background: rgba(201,168,76,0.6);
+      border-radius: 1px;
+      transition: width 0.3s ease;
     }
     .search-back-btn {
       display: inline-flex;
@@ -2373,7 +2598,9 @@
     .home-chat.chatting .home-mode-toggle,
     .home-chat.chatting .home-search-footer,
     .home-chat.chatting #home-search-results,
-    .home-chat.chatting .home-chat-model-loading {
+    .home-chat.chatting .search-loading-bar,
+    .home-chat.chatting .model-picker,
+    .home-chat.chatting .home-chat-model-loading:not(.active) {
       display: none !important;
     }
     .home-chat.chatting .home-chat-input-footer {
@@ -2435,6 +2662,76 @@
       color: rgba(232,228,220,0.4);
     }
     .home-chat.chatting .home-chat-header-title { display: block; }
+
+    /* Model picker */
+    .model-picker {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      padding: 14px 0 20px;
+      animation: mpFadeIn 0.4s ease both;
+    }
+    @keyframes mpFadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .model-picker-label {
+      font-family: var(--font);
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: rgba(232,228,220,0.4);
+      letter-spacing: 0.01em;
+    }
+    .model-picker-cards {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+    }
+    .model-card {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 20px 12px 16px;
+      background: rgba(232,228,220,0.02);
+      border: 1px solid rgba(232,228,220,0.06);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+    .model-card:hover {
+      background: rgba(201,168,76,0.04);
+      border-color: rgba(201,168,76,0.15);
+      transform: translateY(-2px);
+    }
+    .model-card:active { transform: translateY(0); }
+    .model-card-name {
+      font-family: var(--font);
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: rgba(232,228,220,0.8);
+      letter-spacing: -0.01em;
+    }
+    .model-card-desc {
+      font-family: var(--sans);
+      font-size: 0.6rem;
+      color: rgba(232,228,220,0.35);
+      text-align: center;
+      line-height: 1.4;
+    }
+    .model-card-size {
+      font-family: var(--sans);
+      font-size: 0.52rem;
+      color: rgba(201,168,76,0.4);
+      margin-top: 4px;
+      letter-spacing: 0.03em;
+    }
+
     .home-chat-model-loading {
       display: none;
       width: 100%;
@@ -2443,8 +2740,8 @@
       justify-content: center;
       flex-direction: column;
     }
-    .home-chat-model-loading.active { display: flex; }
-    .home-chat-model-loading.active ~ .home-chat-input-area {
+    .home-chat-model-loading.active:not(.hidden-by-mode) { display: flex; }
+    .home-chat-model-loading.active:not(.hidden-by-mode) ~ .home-chat-input-area {
       display: none !important;
     }
     .home-chat-input-area {
@@ -2489,6 +2786,27 @@
     }
     .home-chat-send:hover { background: #c9a84c; opacity: 1; }
     .home-chat-send.ready { opacity: 1; }
+    .home-chat-stop {
+      position: absolute;
+      right: 8px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1px solid rgba(232,228,220,0.12);
+      background: rgba(232,228,220,0.06);
+      color: rgba(232,228,220,0.6);
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+    .home-chat-stop:hover {
+      background: rgba(232,228,220,0.1);
+      border-color: rgba(232,228,220,0.2);
+      color: rgba(232,228,220,0.85);
+    }
+    .home-chat-stop { display: none !important; }
     .home-chat-disclaimer {
       display: none;
       font-size: 0.6rem;
@@ -2803,93 +3121,191 @@
 
     @media (max-width: 800px) {
       .sphere-section { display: none !important; }
-      .mobile-header { display: block !important; }
-      .page-wrap { height: auto; min-height: 100vh; }
+      .mobile-topbar { display: flex !important; }
+      .page-wrap {
+        height: 100vh;
+        height: 100dvh;
+        display: flex;
+        flex-direction: column;
+      }
 
-      /* 1. Mobile header */
-      .mobile-header { padding: 48px 28px 80px !important; }
-      .mobile-header h1 { font-size: 3.2rem !important; }
-      .mobile-header .sub { font-size: 1.4rem !important; }
+      /* Hide desktop-only elements */
+      .mobile-hide-btn { display: none !important; }
+      .mobile-header { display: none !important; }
+      .home-mode-toggle { display: none !important; }
+      .model-picker { display: none !important; }
+      .home-search-footer { display: none !important; }
+      .home-chat-back { display: none !important; }
+      .home-chat-header-title { display: none !important; }
+      .search-loading-bar { display: none !important; }
+      .home-chat-model-loading { display: none !important; }
+      .home-footer { display: none !important; }
 
-      /* 2+3. Homepage chat section — fatter bar, bigger everything */
+      /* ChatGPT-style full-height chat layout */
       .home-chat {
         flex: 1;
-        padding: 0 28px 60px;
+        display: flex !important;
+        flex-direction: column;
+        padding: 0 !important;
         justify-content: flex-start;
       }
       .home-chat-inner {
+        flex: 1;
         max-width: 100%;
+        display: flex;
+        flex-direction: column;
         opacity: 1 !important;
         animation: none !important;
       }
-      .home-chat-welcome { margin-bottom: 36px; }
-      .home-chat-title { font-size: 3rem !important; margin-bottom: 36px !important; }
-      .home-read-btn { font-size: 1.8rem !important; padding: 22px 52px !important; border-radius: 16px !important; }
-      .home-read-btn svg { width: 26px !important; height: 26px !important; }
-      .home-mode-toggle { border-radius: 14px !important; }
-      .home-mode-toggle button { font-size: 1.6rem !important; padding: 14px 40px !important; border-radius: 12px !important; }
-      .home-chat-input-wrap #home-chat-input {
+
+      /* Welcome area — centered vertically in available space */
+      .home-chat-welcome {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 0 24px;
+        margin: 0;
+      }
+      .home-chat-title {
         font-size: 1.6rem !important;
-        padding: 28px 74px 28px 24px !important;
-        border-radius: 18px !important;
-        min-height: 70px !important;
+        margin-bottom: 20px !important;
+        text-align: center;
+        color: rgba(232,228,220,0.6);
+        font-weight: 400;
       }
-      .home-chat-send { width: 56px !important; height: 56px !important; right: 10px !important; }
-      .home-chat-send svg { width: 24px !important; height: 24px !important; }
-      .home-search-footer,
-      .home-chat-input-footer { font-size: 1.4rem !important; gap: 16px !important; margin-bottom: 14px !important; }
-      .home-search-mode-toggle button { font-size: 1.4rem !important; padding: 10px 24px !important; border-radius: 10px !important; }
-      .search-filter-btn { font-size: 1.4rem !important; padding: 10px 20px !important; border-radius: 10px !important; }
-      .search-filter-btn svg { width: 18px !important; height: 18px !important; }
-      .stats-info-btn { width: 30px !important; height: 30px !important; font-size: 1rem !important; }
-      .cd-trigger { font-size: 1.4rem !important; }
-      .cd-menu { font-size: 1.3rem !important; }
-      .cd-item { padding: 14px 18px !important; font-size: 1.3rem !important; }
-
-      /* 4. Footer — BibleVerse · © 2026 only */
-      .home-footer { position: fixed; bottom: 16px; font-size: 1.1rem !important; }
-      .home-footer .mobile-hide { display: none !important; }
-
-      /* 5. Filter modal — much larger text and proper toggle sizing */
-      .search-filter-dropdown {
-        font-size: 1.4rem !important;
-        padding: 28px !important;
-        max-width: 92vw !important;
+      .home-read-btn {
+        font-size: 1rem !important;
+        padding: 14px 28px !important;
+        border-radius: 14px !important;
+        margin-bottom: 28px !important;
       }
-      .sfd-section-title { font-size: 1.5rem !important; margin-bottom: 12px !important; }
-      .sfd-book { font-size: 1.3rem !important; padding: 12px 16px !important; }
-      .sfd-book-swatch { width: 14px !important; height: 14px !important; }
-      .sfd-track { width: 56px !important; height: 30px !important; border-radius: 15px !important; }
-      .sfd-track::after { width: 24px !important; height: 24px !important; top: 3px !important; left: 3px !important; }
-      .sfd-track.on::after { transform: translateX(26px) !important; }
-      .sfd-track.partial::after { transform: translateX(13px) !important; }
-      #sfd-done { font-size: 1.4rem !important; padding: 14px 40px !important; border-radius: 12px !important; }
-      .sfd-divider-v { width: 1px !important; }
+      .home-read-btn svg { width: 18px !important; height: 18px !important; }
 
-      /* 6. Splash cross and Bible emoji larger */
-      .splash-cross { width: 120px !important; }
-      .splash-title { font-size: 3.6rem !important; }
-      .splash-subtitle { font-size: 1.2rem !important; }
-      .rt-bible { width: 220px !important; height: 290px !important; }
-      .rt-label { font-size: 0.9rem !important; }
-      .rt-label-sub { font-size: 0.6rem !important; }
-      .rt-cross-icon { width: 38px !important; height: 38px !important; }
-
-      /* Full-screen chat overlay */
-      .home-chat.chatting .home-chat-input-wrap #home-chat-input {
-        font-size: 1.4rem !important;
-        padding: 24px 64px 24px 20px !important;
-        min-height: 66px !important;
+      /* Suggestion chips */
+      .mobile-suggestions {
+        display: flex !important;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+        padding: 0 16px;
+        max-width: 400px;
       }
-      .chat-msg { font-size: 1.3rem !important; line-height: 1.7 !important; }
-      .chat-msg-label { font-size: 0.95rem !important; }
 
-      /* 7. Reader topbar — reorganize for mobile */
+      /* Messages area */
+      .home-chat-messages {
+        flex: 1;
+        padding: 12px 16px !important;
+        overflow-y: auto;
+      }
+      .chat-msg { font-size: 1rem !important; line-height: 1.65 !important; }
+      .chat-msg-label { font-size: 0.75rem !important; }
+
+      /* Input area — fixed bottom, ChatGPT-style */
+      .home-chat-input-area {
+        padding: 10px 14px 0;
+        background: rgba(0,0,0,0.9);
+        border-top: 1px solid rgba(255,255,255,0.04);
+      }
+      .home-chat-input-footer {
+        font-size: 0.8rem !important;
+        gap: 8px !important;
+        margin-bottom: 8px !important;
+      }
+      .home-chat-input-wrap #home-chat-input {
+        font-size: 1rem !important;
+        padding: 16px 50px 16px 18px !important;
+        border-radius: 28px !important;
+        min-height: 56px !important;
+        background: rgba(255,255,255,0.06) !important;
+        border: 1px solid rgba(255,255,255,0.08) !important;
+      }
+      .home-chat-send, .home-chat-stop {
+        width: 38px !important;
+        height: 38px !important;
+        right: 6px !important;
+      }
+      .home-chat-send svg, .home-chat-stop svg {
+        width: 16px !important;
+        height: 16px !important;
+      }
+
+      /* Hide elements not needed on mobile */
+      .home-search-mode-toggle { display: none !important; }
+      .search-filter-btn { display: none !important; }
+      .stats-info-btn { display: none !important; }
+      .home-chat-input-footer,
+      .home-chat.chatting .home-chat-input-footer { display: none !important; }
+      .mobile-model-label { display: block !important; }
+      .reader-model-picker { display: none !important; }
+      .reader-chat-header .cd-wrap { display: none !important; }
+      .cd-trigger { font-size: 0.85rem !important; }
+      .cd-menu { font-size: 0.85rem !important; }
+      .cd-item { padding: 10px 14px !important; font-size: 0.85rem !important; }
+
+      /* Chatting state — use dvh so input isn't behind iOS bottom bar */
+      .home-chat.chatting {
+        min-height: 100dvh !important;
+      }
+      .home-chat.chatting .home-chat-inner {
+        height: 100dvh !important;
+      }
+      .home-chat.chatting .home-chat-welcome { display: none !important; }
+      .home-chat.chatting .home-chat-messages { display: block !important; }
+      .home-chat.chatting .home-chat-back {
+        display: flex !important;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: rgba(0,0,0,0.85);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        padding: 10px 16px;
+        font-size: 0.9rem;
+        border-bottom: 1px solid rgba(255,255,255,0.04);
+      }
+
+      /* Splash — mobile: JS-driven transitions instead of CSS animations */
+      .splash-cross { width: 80px !important; }
+      .splash-title {
+        font-size: 2.4rem !important;
+        animation: none !important;
+        opacity: 0;
+        transform: translateY(10px);
+        transition: opacity 1s ease-out, transform 1s ease-out;
+        will-change: opacity, transform;
+      }
+      .splash-subtitle {
+        font-size: 0.9rem !important;
+        animation: none !important;
+        opacity: 0;
+        transform: translateY(10px);
+        transition: opacity 1s ease-out, transform 1s ease-out;
+        will-change: opacity, transform;
+      }
+      .splash-title.spl-visible,
+      .splash-subtitle.spl-visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .splash.out .splash-title,
+      .splash.out .splash-subtitle {
+        opacity: 0 !important;
+        transform: translateY(-12px) !important;
+        transition: opacity 0.8s ease-in, transform 0.8s ease-in !important;
+      }
+      .rt-bible { width: 160px !important; height: 210px !important; }
+      .rt-label { font-size: 0.75rem !important; }
+      .rt-label-sub { font-size: 0.5rem !important; }
+      .rt-cross-icon { width: 28px !important; height: 28px !important; }
+
+      /* Reader topbar — reorganize for mobile */
       .reader-topbar {
         flex-direction: column !important;
         align-items: stretch !important;
-        padding: 14px 20px 12px !important;
-        gap: 8px !important;
+        padding: 8px 16px 6px !important;
+        gap: 4px !important;
       }
       .reader-topbar-left {
         position: static !important;
@@ -2904,57 +3320,98 @@
         transform: none !important;
         justify-content: flex-end;
       }
-      .reader-tl-label { font-size: 1rem !important; }
-      .reader-tl-toggle button { font-size: 1rem !important; padding: 8px 16px !important; }
+      .reader-tl-label { font-size: 0.38rem !important; }
+      .reader-tl-toggle button { font-size: 0.38rem !important; padding: 2px 5px !important; }
       .reader-topbar-center {
         order: 1;
         align-items: center;
       }
-      .reader-topbar-title .cd-trigger { font-size: 1.6rem !important; font-weight: 700 !important; }
-      .reader-topbar-title .cd-chev { width: 12px !important; height: 8px !important; }
-      .reader-chapter-nav .cd-trigger { font-size: 1.2rem !important; }
-      .reader-chapter-nav > button { width: 36px !important; height: 36px !important; font-size: 1.4rem !important; }
-      .reader-close { width: 40px !important; height: 40px !important; font-size: 1.2rem !important; }
+      .reader-topbar-title .cd-trigger { font-size: 1.15rem !important; font-weight: 700 !important; }
+      .reader-topbar-title .cd-chev { width: 9px !important; height: 6px !important; }
+      .reader-chapter-nav .cd-trigger { font-size: 0.9rem !important; }
+      .reader-chapter-nav > button { width: 28px !important; height: 28px !important; font-size: 1rem !important; }
+      .reader-close {
+        width: 32px !important;
+        height: 32px !important;
+        font-size: 0 !important;
+      }
+      .reader-close::after {
+        content: '←';
+        font-size: 1rem;
+      }
 
-      /* Reader body */
+      .reader-overlay {
+        overflow: hidden !important;
+        background: rgb(6,6,12) !important;
+      }
       .reader-body { flex-direction: column !important; }
-      .reader-content { position: relative !important; right: 0 !important; flex: 1; min-height: 40vh; }
-      .reader-inner { padding: 0 22px !important; font-size: 1.25rem !important; transform: none !important; }
-      .reader-chapter-heading { font-size: 1.4rem !important; }
-      .reader-verse { font-size: 1.25rem !important; line-height: 1.85 !important; }
+      .reader-content { position: relative !important; right: 0 !important; flex: 1; min-height: 0; overflow-y: auto; }
+      .reader-inner { padding: 0 16px !important; font-size: 0.82rem !important; transform: none !important; }
+      .reader-chapter-heading { font-size: 0.95rem !important; }
+      .reader-verse { font-size: 0.82rem !important; line-height: 1.65 !important; }
 
-      /* 8. Reader chat — much larger everything */
+      /* Reader chat */
       .reader-chat {
         width: 100% !important;
         min-width: 0 !important;
-        max-height: 45vh;
+        max-height: 30vh;
+        flex-shrink: 0;
         border-left: none !important;
         border-top: 1px solid rgba(201,168,76,0.06);
       }
       .reader-chat-header {
         min-width: 0 !important;
-        padding: 14px 20px !important;
+        padding: 12px 16px !important;
       }
-      .reader-chat-header span { font-size: 1rem !important; }
-      .reader-chat-header .cd-trigger { font-size: 1.2rem !important; }
+      .reader-chat-header span { font-size: 0.85rem !important; }
+      .reader-chat-header .cd-trigger { font-size: 0.95rem !important; }
       .reader-chat-settings { min-width: 0 !important; }
-      .reader-chat-empty { font-size: 1.1rem !important; }
-      .reader-chat-disclaimer { font-size: 0.9rem !important; }
-      .reader-chat .chat-msg { font-size: 1.2rem !important; }
-      .reader-chat .chat-msg-label { font-size: 0.9rem !important; }
-      .reader-chat textarea {
-        font-size: 1.3rem !important;
-        padding: 18px 56px 18px 18px !important;
-        min-height: 60px !important;
+      .reader-chat-empty { font-size: 0.9rem !important; }
+      .reader-chat-disclaimer,
+      .reader-chat-settings-hint,
+      .rmp-hint { display: none !important; }
+      .rmp-label { font-size: 0.85rem !important; }
+      .rmp-card { padding: 14px 16px !important; }
+      .rmp-card-name { font-size: 0.85rem !important; }
+      .rmp-card-desc { font-size: 0.7rem !important; }
+      .reader-chat .chat-msg { font-size: 1rem !important; }
+      .reader-chat .chat-msg-label { font-size: 0.75rem !important; }
+      .reader-chat-input-wrap {
+        padding: 8px 12px !important;
+        min-width: 0 !important;
+        border-top: 1px solid rgba(255,255,255,0.04) !important;
+        align-items: center !important;
+        gap: 8px !important;
       }
-      .reader-chat .home-chat-send,
-      .reader-chat .chat-send {
-        width: 48px !important;
-        height: 48px !important;
+      .reader-chat-input-wrap textarea {
+        flex: 1 !important;
+        font-size: 0.95rem !important;
+        padding: 10px 14px !important;
+        min-height: 40px !important;
+        border-radius: 20px !important;
+        background: rgba(255,255,255,0.06) !important;
+        border: 1px solid rgba(255,255,255,0.08) !important;
+        color: rgba(232,228,220,0.85) !important;
+      }
+      .reader-chat-input-wrap button {
+        width: 36px !important;
+        height: 36px !important;
+        border-radius: 50% !important;
+        background: rgba(201,168,76,0.7) !important;
+        border: none !important;
+        color: #0a0a14 !important;
+        flex-shrink: 0 !important;
       }
 
       .module-grid { grid-template-columns: 1fr; }
-      .methodology { padding: 2.5rem 1.2rem; }
+      .methodology { padding: 2rem 1rem; }
+
+      /* Filter modal */
+      .search-filter-dropdown {
+        font-size: 1.1rem !important;
+        padding: 20px !important;
+        max-width: 92vw !important;
+      }
     }
   </style>
 </head>
@@ -2999,9 +3456,16 @@
   function dismiss(){
     if(s.classList.contains('out'))return;
     s.classList.add('out');
-    setTimeout(function(){s.remove()},1600);
+    setTimeout(function(){s.remove()}, window.innerWidth <= 800 ? 2200 : 1600);
   }
-  setTimeout(dismiss,3800);
+  var isMob = window.innerWidth <= 800;
+  if (isMob) {
+    var splT = s.querySelector('.splash-title');
+    var splSub = s.querySelector('.splash-subtitle');
+    setTimeout(function(){ if(splT) splT.classList.add('spl-visible'); }, 800);
+    setTimeout(function(){ if(splSub) splSub.classList.add('spl-visible'); }, 1300);
+  }
+  setTimeout(dismiss, isMob ? 4600 : 3800);
   s.addEventListener('click',dismiss);
 })();
 </script>
@@ -3009,10 +3473,9 @@
 <!-- Mobile notice -->
 <div class="mobile-notice-overlay" id="mobile-notice">
   <div class="mobile-notice">
-    <div class="mobile-notice-icon">&#9888;</div>
-    <h2>Desktop recommended</h2>
-    <p>The mobile experience is under active development. For full functionality, please use the desktop version.</p>
-    <button class="mobile-notice-btn" id="mobile-notice-dismiss">Continue anyway</button>
+    <h2>Welcome to BibleVerse</h2>
+    <p>The desktop version includes additional features like the interactive 3D cross-reference visualization. Everything else works great here.</p>
+    <button class="mobile-notice-btn" id="mobile-notice-dismiss">Get started</button>
   </div>
 </div>
 <script>
@@ -3048,10 +3511,16 @@
 
 </div>
 
-<!-- Mobile-only header (hidden on desktop) -->
-<div class="mobile-header">
-  <h1>BibleVerse <span style="font-weight:300;">— The Modern Bible Interface</span></h1>
-  <p class="sub">Efficient exploration of humanity's most consequential text</p>
+<!-- Mobile top bar (hidden on desktop) -->
+<div class="mobile-topbar" id="mobile-topbar">
+  <button class="mobile-topbar-book" id="mobile-open-reader" aria-label="Read Bible">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="22" height="22">
+      <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
+      <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
+    </svg>
+  </button>
+  <span class="mobile-topbar-title">BibleVerse <span style="opacity:0.45;font-weight:400;font-size:0.8em;">(Beta)</span></span>
+  <div class="mobile-topbar-spacer"></div>
 </div>
 
 <!-- Homepage AI Chat -->
@@ -3064,13 +3533,18 @@
   <div class="home-chat-inner">
     <div class="home-chat-welcome" id="home-chat-welcome">
       <div class="home-chat-title">What would you like to explore?</div>
-      <button class="home-read-btn" id="hc-read-bible">
+      <button class="home-read-btn mobile-hide-btn" id="hc-read-bible">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
           <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
           <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
         </svg>
         Read the Bible with AI
       </button>
+      <div class="mobile-suggestions" id="mobile-suggestions">
+        <button class="mobile-chip" data-q="Is suffering redemptive?">Is suffering redemptive?</button>
+        <button class="mobile-chip" data-q="Why does God permit evil?">Why does God permit evil?</button>
+        <button class="mobile-chip" data-q="What separates man from God?">What separates man from God?</button>
+      </div>
     </div>
 
     <div class="home-mode-toggle">
@@ -3078,6 +3552,23 @@
       <button id="home-mode-chat">Chat</button>
     </div>
 
+    <div class="model-picker" id="model-picker" style="display:none;">
+      <div class="model-picker-label">Choose your model</div>
+      <div class="model-picker-cards">
+        <button class="model-card" data-model="standard">
+          <div class="model-card-name">Standard</div>
+          <div class="model-card-desc">Balanced speed and quality</div>
+        </button>
+        <button class="model-card" data-model="max">
+          <div class="model-card-name">Max</div>
+          <div class="model-card-desc">Best quality, slower</div>
+        </button>
+        <button class="model-card" data-model="genius">
+          <div class="model-card-name"><em>Genius Mode</em></div>
+          <div class="model-card-desc">Philosophical, high-IQ</div>
+        </button>
+      </div>
+    </div>
     <div class="home-chat-messages" id="home-chat-messages" style="display:none;"></div>
     <div id="home-search-results" style="display:none;">
       <button class="search-back-btn" id="search-back-btn">
@@ -3087,6 +3578,11 @@
       <div id="home-search-status"></div>
       <div id="home-search-results-desc"></div>
       <div id="home-search-results-list"></div>
+    </div>
+    <div class="search-loading-bar" id="search-loading-bar">
+      <div class="search-loading-dots"><span></span><span></span><span></span></div>
+      <div class="search-loading-text" id="search-loading-text">Loading search model</div>
+      <div class="search-loading-track"><div class="search-loading-fill" id="search-loading-fill"></div></div>
     </div>
     <div class="home-chat-model-loading" id="home-chat-model-loading">
       <div class="rcml-inner">
@@ -3122,10 +3618,14 @@
         </div>
         <button class="stats-info-btn" id="chat-info-btn" title="About chat">i</button>
       </div>
+      <div class="mobile-model-label" id="mobile-model-label">Logos</div>
       <div class="home-chat-input-wrap">
-        <input type="text" id="home-chat-input" placeholder="Enter any word, phrase, or idea to find the most relevant verses and passages in the Bible..." autocomplete="off" spellcheck="false">
+        <input type="text" id="home-chat-input" placeholder="Enter any text..." autocomplete="off" spellcheck="false">
         <button id="home-chat-send" class="home-chat-send" aria-label="Send">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 14V2M8 2L3 7M8 2l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button id="home-chat-stop" class="home-chat-stop" aria-label="Stop">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="2" width="10" height="10" rx="2" fill="currentColor"/></svg>
         </button>
       </div>
       <span class="home-chat-disclaimer" id="home-chat-disclaimer" style="display:none;"></span>
@@ -3135,7 +3635,7 @@
 </div>
 
 <div class="home-footer">
-  BibleVerse <span class="mobile-hide">&nbsp;&nbsp;&middot;&nbsp;&nbsp; built by <a href="https://gregorykyro.com" target="_blank">Gregory W. Kyro, Ph.D.</a></span> &nbsp;&nbsp;&middot;&nbsp;&nbsp; © 2026
+  BibleVerse (Beta) <span class="mobile-hide">&nbsp;&nbsp;&middot;&nbsp;&nbsp; built by <a href="https://gregorykyro.com" target="_blank">Gregory W. Kyro, Ph.D.</a></span> &nbsp;&nbsp;&middot;&nbsp;&nbsp; © 2026
 </div>
 
 <!-- Methodology modal -->
@@ -3304,9 +3804,9 @@ document.getElementById('methodology-overlay').addEventListener('click', functio
       while preserving output quality. The available architectures are:
     </p>
     <ul style="margin: 0.8rem 0; padding-left: 1.4rem; font-size: 0.82rem; color: rgba(232,228,220,0.6); line-height: 1.9;">
-      <li><b style="color:rgba(232,228,220,0.75);">Logos Light</b> — Based on Meta Llama 3.2 1B. 1.2B parameters, 0.9 GB VRAM. Fastest inference, runs on nearly any device including mobile.</li>
       <li><b style="color:rgba(232,228,220,0.75);">Logos Standard</b> — Based on Google Gemma 2 2B. 2.6B parameters, 2.0 GB VRAM. Strong quality-to-size ratio, recommended default.</li>
       <li><b style="color:rgba(232,228,220,0.75);">Logos Max</b> — Based on Microsoft Phi 3.5 Mini. 3.8B parameters, 3.7 GB VRAM. Strongest reasoning capability, best for complex questions.</li>
+      <li><b style="color:rgba(232,228,220,0.75);">Max (Genius Mode)</b> — Same model as Logos Max with a distinctive philosophical voice inspired by Dostoevsky and Nietzsche. Blunt, piercing, high-IQ responses.</li>
     </ul>
   </div>
   <div class="method-block">
@@ -3536,8 +4036,14 @@ document.getElementById('chat-methodology-overlay').addEventListener('click', fu
     <div class="reader-content" id="reader-content">
       <div class="reader-inner" id="reader-inner"></div>
     </div>
+    <div class="reader-sel-tooltip" id="reader-sel-tooltip">
+      <button id="reader-sel-ask">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Ask AI
+      </button>
+    </div>
     <div class="reader-chat" id="reader-chat">
-      <div class="reader-chat-header">
+      <div class="reader-chat-header" id="reader-chat-header" style="display:none;">
         <div class="cd-wrap" id="cd-model">
           <button class="cd-trigger" id="cd-model-trigger">
             <span>Logos Standard</span>
@@ -3567,16 +4073,34 @@ document.getElementById('chat-methodology-overlay').addEventListener('click', fu
         </div>
         <div class="reader-chat-settings-hint">Without a key, AI runs locally in your browser via WebGPU.</div>
       </div>
-      <div class="reader-chat-messages" id="reader-chat-messages">
+      <div class="reader-model-picker" id="reader-model-picker">
+        <div class="rmp-label">Choose your model</div>
+        <div class="rmp-cards">
+          <button class="rmp-card" data-model="standard">
+            <div class="rmp-card-name">Standard</div>
+            <div class="rmp-card-desc">Balanced speed and quality</div>
+          </button>
+          <button class="rmp-card" data-model="max">
+            <div class="rmp-card-name">Max</div>
+            <div class="rmp-card-desc">Best quality, slower</div>
+          </button>
+          <button class="rmp-card" data-model="genius">
+            <div class="rmp-card-name"><em>Genius Mode</em></div>
+            <div class="rmp-card-desc">Philosophical, high-IQ</div>
+          </button>
+        </div>
+        <div class="rmp-hint">Your conversation is private — AI runs locally in your browser.</div>
+      </div>
+      <div class="reader-chat-messages" id="reader-chat-messages" style="display:none;">
         <div class="reader-chat-empty">Ask anything about the text you're reading.</div>
       </div>
-      <div class="reader-chat-input-wrap">
+      <div class="reader-chat-input-wrap" id="reader-chat-input-wrap" style="display:none;">
         <textarea id="reader-chat-input" placeholder="Ask a question..." rows="1"></textarea>
         <button id="reader-chat-send" title="Send">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
         </button>
       </div>
-      <div class="reader-chat-disclaimer">AI runs locally in your browser. Your messages stay on your device.</div>
+      <div class="reader-chat-disclaimer" id="reader-chat-disclaimer" style="display:none;">AI runs locally in your browser. Your messages stay on your device.</div>
     </div>
   </div>
 </div>
@@ -3759,6 +4283,6 @@ document.getElementById('chat-methodology-overlay').addEventListener('click', fu
 </script>
 
 <script src="js/common.js"></script>
-<script src="js/hero.js"></script>
+<script src="js/hero.js?v=20260228r"></script>
 </body>
 </html>

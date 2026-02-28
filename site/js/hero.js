@@ -7,6 +7,7 @@
  */
 
 (async function () {
+  const isMobileDevice = window.innerWidth <= 800;
   const data = await loadJSON('sphere.json?v=' + Date.now());
   const pts = data.points;
   const stats = data.stats;
@@ -174,6 +175,7 @@
   };
 
   const plotEl = document.getElementById('sphere-plot');
+  if (!isMobileDevice) {
   await Plotly.newPlot(plotEl, traces, layout, {
     responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false,
   });
@@ -351,19 +353,22 @@
     });
     Plotly.restyle(plotEl, { visible: visibility });
   }
+  } // end if (!isMobileDevice) — Plotly init & sphere interactions
 
-  // Stats
-  document.getElementById('stat-verses').textContent = stats.total_verses.toLocaleString();
-  document.getElementById('stat-books').textContent = stats.books;
-  document.getElementById('stat-refs').textContent = stats.arcs_in_dataset.toLocaleString();
-  const legVerseMeth = document.getElementById('leg-verse-count-meth');
-  const legEdgeMeth = document.getElementById('leg-edge-count-meth');
-  if (legVerseMeth) legVerseMeth.textContent = stats.total_verses.toLocaleString();
-  if (legEdgeMeth) legEdgeMeth.textContent = stats.arcs_in_dataset.toLocaleString();
-  const legIntra = document.getElementById('leg-intra-count');
-  const legInter = document.getElementById('leg-inter-count');
-  if (legIntra) legIntra.textContent = (stats.dataset_intra || 0).toLocaleString();
-  if (legInter) legInter.textContent = (stats.dataset_inter || 0).toLocaleString();
+  // Stats (desktop only — sphere not used on mobile)
+  if (!isMobileDevice) {
+    document.getElementById('stat-verses').textContent = stats.total_verses.toLocaleString();
+    document.getElementById('stat-books').textContent = stats.books;
+    document.getElementById('stat-refs').textContent = stats.arcs_in_dataset.toLocaleString();
+    const legVerseMeth = document.getElementById('leg-verse-count-meth');
+    const legEdgeMeth = document.getElementById('leg-edge-count-meth');
+    if (legVerseMeth) legVerseMeth.textContent = stats.total_verses.toLocaleString();
+    if (legEdgeMeth) legEdgeMeth.textContent = stats.arcs_in_dataset.toLocaleString();
+    const legIntra = document.getElementById('leg-intra-count');
+    const legInter = document.getElementById('leg-inter-count');
+    if (legIntra) legIntra.textContent = (stats.dataset_intra || 0).toLocaleString();
+    if (legInter) legInter.textContent = (stats.dataset_inter || 0).toLocaleString();
+  }
 
   // --- Semantic search (Bible-trained MPNet via ONNX in browser) ---
   const SEARCH_DIM = 768;
@@ -373,17 +378,20 @@
   const searchDesc = document.getElementById('home-search-results-desc');
   const searchList = document.getElementById('home-search-results-list');
   const highlightTraceIdx = traces.length;
+  let focusTraceIdx = highlightTraceIdx + 1;
 
-  Plotly.addTraces(plotEl, [
-    { type: 'scatter3d', mode: 'markers',
-      x: [], y: [], z: [], text: [], hoverinfo: 'text', showlegend: false,
-      marker: { size: 5, color: '#ffffff', opacity: 0.95 }, hoverlabel: hoverCfg },
-    { type: 'scatter3d', mode: 'markers',
-      x: [], y: [], z: [], text: [], hoverinfo: 'text', showlegend: false,
-      marker: { size: 12, color: 'rgba(201,168,76,0.9)', symbol: 'diamond',
-        line: { width: 2, color: '#fff' } }, hoverlabel: hoverCfg },
-  ]);
-  const focusTraceIdx = highlightTraceIdx + 1;
+  if (!isMobileDevice) {
+    Plotly.addTraces(plotEl, [
+      { type: 'scatter3d', mode: 'markers',
+        x: [], y: [], z: [], text: [], hoverinfo: 'text', showlegend: false,
+        marker: { size: 5, color: '#ffffff', opacity: 0.95 }, hoverlabel: hoverCfg },
+      { type: 'scatter3d', mode: 'markers',
+        x: [], y: [], z: [], text: [], hoverinfo: 'text', showlegend: false,
+        marker: { size: 12, color: 'rgba(201,168,76,0.9)', symbol: 'diamond',
+          line: { width: 2, color: '#fff' } }, hoverlabel: hoverCfg },
+    ]);
+    focusTraceIdx = highlightTraceIdx + 1;
+  }
 
   // Translation state — controlled per-modal, defaults to KJV in search results
   let activeTrans = 'kjv';
@@ -507,28 +515,38 @@
   let searchLoading = false;
 
   function showSearchError(msg) {
-    const el = document.getElementById('home-chat-input');
-    if (el) { el.placeholder = msg; el.style.color = 'rgba(220,80,80,0.6)'; }
+    const bar = document.getElementById('search-loading-bar');
+    const textEl = document.getElementById('search-loading-text');
+    if (bar && textEl) {
+      textEl.textContent = msg;
+      textEl.style.color = 'rgba(220,80,80,0.6)';
+      bar.classList.add('active');
+      setTimeout(() => { bar.classList.remove('active'); textEl.style.color = ''; }, 5000);
+    }
   }
 
   const defaultPlaceholder = searchInput.placeholder;
   let searchLoadingDots = null;
 
+  const searchLoadingBarEl = document.getElementById('search-loading-bar');
+  const searchLoadingTextEl = document.getElementById('search-loading-text');
+  const searchLoadingFillEl = document.getElementById('search-loading-fill');
+
   function showSearchLoading() {
-    const el = searchInput;
-    let dots = 0;
-    el.placeholder = 'Loading search model';
-    el.disabled = true;
+    searchLoadingFillEl.style.width = '0%';
+    searchLoadingTextEl.textContent = 'Loading search model';
+    searchLoadingBarEl.classList.add('active');
+    let pct = 0;
     searchLoadingDots = setInterval(() => {
-      dots = (dots + 1) % 4;
-      el.placeholder = 'Loading search model' + '.'.repeat(dots);
-    }, 400);
+      pct = Math.min(pct + Math.random() * 8 + 2, 92);
+      searchLoadingFillEl.style.width = pct + '%';
+    }, 300);
   }
 
   function hideSearchLoading() {
     if (searchLoadingDots) { clearInterval(searchLoadingDots); searchLoadingDots = null; }
-    searchInput.disabled = false;
-    searchInput.placeholder = defaultPlaceholder;
+    searchLoadingFillEl.style.width = '100%';
+    setTimeout(() => searchLoadingBarEl.classList.remove('active'), 300);
   }
 
   async function loadSearchAssets() {
@@ -728,7 +746,7 @@
   }
 
   function restoreSphere() {
-    if (!sphereFaded) return;
+    if (isMobileDevice || !sphereFaded) return;
     sphereFaded = false;
     Plotly.restyle(plotEl, { 'marker.opacity': [ot.bookNum.map(() => 0.85)] }, [otTraceIdx]);
     Plotly.restyle(plotEl, { 'marker.opacity': [nt.bookNum.map(() => 0.85)] }, [ntTraceIdx]);
@@ -745,10 +763,12 @@
     searchList.innerHTML = '';
     searchDesc.innerHTML = '';
     document.querySelector('.page-wrap').classList.remove('search-active');
-    Plotly.restyle(plotEl, { x: [[]], y: [[]], z: [[]], text: [[]] }, [highlightTraceIdx]);
-    if (!sphereFaded) {
-      Plotly.restyle(plotEl, { x: [[]], y: [[]], z: [[]], text: [[]] }, [focusTraceIdx]);
-      if (pulseTimer) { clearInterval(pulseTimer); pulseTimer = null; }
+    if (!isMobileDevice) {
+      Plotly.restyle(plotEl, { x: [[]], y: [[]], z: [[]], text: [[]] }, [highlightTraceIdx]);
+      if (!sphereFaded) {
+        Plotly.restyle(plotEl, { x: [[]], y: [[]], z: [[]], text: [[]] }, [focusTraceIdx]);
+        if (pulseTimer) { clearInterval(pulseTimer); pulseTimer = null; }
+      }
     }
     document.querySelectorAll('.sr-item.active').forEach(el => el.classList.remove('active'));
   }
@@ -1044,6 +1064,11 @@
   function openReader(bookNum, highlightRefs) {
     readerHighlightRefs = new Set(highlightRefs);
     modalOverlay.classList.remove('open');
+    syncReaderPickerState();
+    if (isMobileDevice) {
+      var barH = document.documentElement.clientHeight - window.innerHeight;
+      readerOverlay.style.paddingBottom = (barH > 0 ? barH : 20) + 'px';
+    }
 
     const scrollRef = highlightRefs.length > 0 ? highlightRefs[0] : null;
 
@@ -1081,6 +1106,18 @@
       readerTransition.classList.remove('active', 'phase-1', 'phase-2');
       readerTransitionActive = false;
     }, 3300);
+  }
+
+  function syncReaderPickerState() {
+    if (chatModelChosen || readerModelChosen || localStorage.getItem('bv_openai_key') || isMobileDevice) {
+      showReaderChatUI();
+    } else {
+      readerModelPicker.style.display = '';
+      readerChatHeader.style.display = 'none';
+      chatMsgContainer.style.display = 'none';
+      readerChatInputWrap.style.display = 'none';
+      readerChatDisclaimer.style.display = 'none';
+    }
   }
 
   document.getElementById('reader-close').addEventListener('click', () => {
@@ -1166,34 +1203,98 @@
   let llmCurrentModel = null;
 
   const LLM_MODELS = [
-    { id: 'Llama-3.2-1B-Instruct-q4f16_1-MLC', label: 'Logos Light', menu: 'Light', vram: '0.9 GB' },
-    { id: 'gemma-2-2b-it-q4f16_1-MLC', label: 'Logos Standard', menu: 'Standard', vram: '2.0 GB' },
-    { id: 'Phi-3.5-mini-instruct-q4f16_1-MLC', label: 'Logos Max', menu: 'Max', vram: '3.7 GB' },
+    {
+      key: 'standard', id: 'gemma-2-2b-it-q4f16_1-MLC', label: 'Logos Standard', menu: 'Standard', vram: '2.0 GB',
+      sysPrompt: 'You are a Bible assistant. Be conversational. Use as few words as possible while still answering sufficiently. Your language style should reflect a fusion of Dostoevsky and Nietzsche. Be blunt and concise. Be incredibly high IQ. Cite relevant verses when they strengthen your answer.',
+      sysReaderPrompt: 'You are a Bible assistant. The user is reading {book}, Chapter {ch}. Answer from the text below.\n\nBe conversational. Use as few words as possible while still answering sufficiently. Your language style should reflect a fusion of Dostoevsky and Nietzsche. Be blunt and concise. Be incredibly high IQ. Cite verse numbers when they strengthen your answer.\n\n{text}',
+      contextLimit: 3000,
+    },
+    {
+      key: 'max', id: 'Phi-3.5-mini-instruct-q4f16_1-MLC', label: 'Logos Max', menu: 'Max', vram: '3.7 GB',
+      sysPrompt: 'You are a Bible assistant. Be conversational, but as blunt and concise as possible. Say as few words as possible while answering sufficiently. Be as concise as possible.',
+      sysReaderPrompt: 'You are a Bible assistant. The user is reading {book}, Chapter {ch}. Be conversational, but as blunt and concise as possible. Say as few words as possible while answering sufficiently. Cite verse numbers.\n\n{text}',
+      contextLimit: 3000,
+    },
+    {
+      key: 'genius', id: 'Phi-3.5-mini-instruct-q4f16_1-MLC', label: 'Max (Genius Mode)', menu: 'Genius Mode', vram: '3.7 GB',
+      sysPrompt: 'You are a Bible assistant. Be conversational, but as blunt and concise as possible. Say as few words as possible while answering sufficiently. Your language style should reflect a fusion of Dostoevsky and Nietzsche. Be as concise as possible.',
+      sysReaderPrompt: 'You are a Bible assistant. The user is reading {book}, Chapter {ch}. Be conversational, but as blunt and concise as possible. Say as few words as possible while answering sufficiently. Your language style should reflect a fusion of Dostoevsky and Nietzsche. Cite verse numbers.\n\n{text}',
+      contextLimit: 3000,
+    },
   ];
+
+  function getModelConfig() {
+    const key = getSelectedModel();
+    return LLM_MODELS.find(m => m.key === key) || LLM_MODELS[0];
+  }
 
   const chatModelSelect = setupDropdown('cd-model', 'cd-model-trigger', 'cd-model-menu', async (val) => {
     localStorage.setItem('bv_llm_model', val);
     try { homeChatModelSelect.value = val; } catch (_) {}
-    if (!localStorage.getItem('bv_openai_key') && navigator.gpu && llmCurrentModel !== val) {
+    const underlying = (LLM_MODELS.find(m => m.key === val) || LLM_MODELS[0]).id;
+    if (!localStorage.getItem('bv_openai_key') && !isMobileDevice && navigator.gpu && llmCurrentModel !== underlying) {
       chatHistory = [];
       renderChat();
       await showModelLoading(val);
     }
   });
-  chatModelSelect.setItems(LLM_MODELS.map(m => ({ value: m.id, label: m.menu, triggerLabel: m.label })));
+  chatModelSelect.setItems(LLM_MODELS.map(m => ({ value: m.key, label: m.menu, triggerLabel: m.label })));
   const storedModel = localStorage.getItem('bv_llm_model');
-  if (storedModel && LLM_MODELS.find(m => m.id === storedModel)) {
+  if (storedModel && LLM_MODELS.find(m => m.key === storedModel)) {
     chatModelSelect.value = storedModel;
   } else {
-    chatModelSelect.value = LLM_MODELS[1].id;
+    chatModelSelect.value = LLM_MODELS[0].key;
   }
 
   function getSelectedModel() { return chatModelSelect.value; }
 
+  let readerModelChosen = false;
+  const readerModelPicker = document.getElementById('reader-model-picker');
+  const readerChatHeader = document.getElementById('reader-chat-header');
+  const readerChatInputWrap = document.getElementById('reader-chat-input-wrap');
+  const readerChatDisclaimer = document.getElementById('reader-chat-disclaimer');
+
+  function showReaderChatUI() {
+    readerModelPicker.style.display = 'none';
+    readerChatHeader.style.display = '';
+    chatMsgContainer.style.display = '';
+    readerChatInputWrap.style.display = '';
+    readerChatDisclaimer.style.display = '';
+  }
+
+  document.querySelectorAll('.rmp-card').forEach(card => {
+    card.addEventListener('click', async () => {
+      const modelKey = card.dataset.model;
+      const underlying = (LLM_MODELS.find(m => m.key === modelKey) || LLM_MODELS[0]).id;
+      readerModelChosen = true;
+      chatModelChosen = true;
+
+      localStorage.setItem('bv_llm_model', modelKey);
+      chatModelSelect.value = modelKey;
+      try { homeChatModelSelect.value = modelKey; } catch (_) {}
+
+      showReaderChatUI();
+
+      const apiKey = localStorage.getItem('bv_openai_key');
+      if (!apiKey && !isMobileDevice && navigator.gpu && (!llmEngine || llmCurrentModel !== underlying)) {
+        await showModelLoading(modelKey);
+      }
+      chatInput.focus();
+    });
+  });
+
+  let llmReady = false;
+
   // Pre-load default model in background (delay until splash finishes)
-  if (navigator.gpu && !localStorage.getItem('bv_openai_key')) {
-    setTimeout(function () {
-      initLLM(getSelectedModel(), function () {}).catch(function () {});
+  if (!isMobileDevice && navigator.gpu && !localStorage.getItem('bv_openai_key')) {
+    setTimeout(async function () {
+      try {
+        const modelId = getModelConfig().id;
+        await initLLM(modelId, function () {});
+        llmReady = true;
+      } catch (e) {
+        console.error('Pre-load failed:', e);
+      }
     }, 4500);
   }
 
@@ -1269,41 +1370,72 @@
 
   function buildMsgs() {
     const ctx = getChatContext();
-    const sys = 'The user is reading ' + ctx.bookName + ', Chapter ' + ctx.chapter +
-      '. Answer from the text below.\n\n' +
-      'Speak with the directness of Dostoevsky and the reverence of the Greek Orthodox tradition. Terse, serious, no pleasantries, no filler. Say exactly what must be said — no more. Cite verse numbers when they are the answer, not decoration. If one sentence suffices, give one sentence. Conciseness is paramount.\n\n' + ctx.text;
+    const model = getModelConfig();
+    const sys = model.sysReaderPrompt
+      .replace('{book}', ctx.bookName)
+      .replace('{ch}', ctx.chapter)
+      .replace('{text}', ctx.text);
+    const sysTokens = estimateTokens(sys);
+    const trimmed = trimToContextLimit(chatHistory, sysTokens, model.contextLimit);
     const msgs = [{ role: 'system', content: sys }];
-    for (const m of chatHistory) {
+    for (const m of trimmed) {
       if (m.content) msgs.push({ role: m.role, content: m.content });
     }
     return msgs;
   }
 
+  let llmLoadingPromise = null;
+  let llmLoadingModelId = null;
+  let llmProgressCallback = null;
+
+  function setLLMProgressCallback(cb) { llmProgressCallback = cb; }
+
   async function initLLM(modelId, onProgress) {
     if (llmEngine && llmCurrentModel === modelId) return;
+    if (llmLoadingPromise && llmLoadingModelId === modelId) {
+      if (onProgress) llmProgressCallback = onProgress;
+      await llmLoadingPromise;
+      return;
+    }
     if (llmEngine) { await llmEngine.unload(); llmEngine = null; }
-    const mod = await import('https://esm.run/@mlc-ai/web-llm');
-    llmEngine = await mod.CreateMLCEngine(modelId, {
-      initProgressCallback: onProgress,
-    });
-    llmCurrentModel = modelId;
+    llmLoadingModelId = modelId;
+    llmProgressCallback = onProgress || null;
+    llmLoadingPromise = (async () => {
+      const mod = await import('https://esm.run/@mlc-ai/web-llm');
+      llmEngine = await mod.CreateMLCEngine(modelId, {
+        initProgressCallback: (report) => { if (llmProgressCallback) llmProgressCallback(report); },
+      });
+      llmCurrentModel = modelId;
+    })();
+    try {
+      await llmLoadingPromise;
+    } finally {
+      llmLoadingPromise = null;
+      llmLoadingModelId = null;
+      llmProgressCallback = null;
+    }
   }
 
   const modelLoadingEl = document.getElementById('reader-chat-model-loading');
   const modelLoadingText = document.getElementById('rcml-text');
   const modelLoadingBar = document.getElementById('rcml-bar');
 
-  async function showModelLoading(modelId) {
-    const label = LLM_MODELS.find(m => m.id === modelId)?.label || modelId;
+  async function showModelLoading(modelKey) {
+    const model = LLM_MODELS.find(m => m.key === modelKey) || LLM_MODELS[0];
+    const modelId = model.id;
+    const label = model.label;
     modelLoadingText.textContent = label;
     modelLoadingBar.style.width = '0%';
     modelLoadingEl.classList.add('active');
+    let maxPct = 0;
     try {
       await initLLM(modelId, function (report) {
         const pct = Math.round((report.progress || 0) * 100);
-        modelLoadingBar.style.width = pct + '%';
-        modelLoadingText.textContent = pct >= 100 ? 'Starting ' + label : label;
+        if (pct > maxPct) maxPct = pct;
+        modelLoadingBar.style.width = maxPct + '%';
+        modelLoadingText.textContent = maxPct >= 100 ? 'Starting ' + label : label;
       });
+      llmReady = true;
     } finally {
       modelLoadingEl.classList.remove('active');
     }
@@ -1330,21 +1462,15 @@
     try {
       if (apiKey) {
         await streamOpenAI(buildMsgs(), apiKey, readerOnDelta);
+      } else if (isMobileDevice) {
+        await callWorkerAI(buildMsgs(), readerOnDelta);
       } else {
-        if (!navigator.gpu) {
-          chatHistory[chatHistory.length - 1].content =
-            'Your browser does not support WebGPU, which is required for in-browser AI.\n\n' +
-            'Use Chrome or Edge for the best experience, or add an OpenAI API key via the gear icon above.';
-          renderChat();
-          chatStreaming = false;
-          return;
-        }
-        const selectedModel = getSelectedModel();
-        if (!llmEngine || llmCurrentModel !== selectedModel) {
-          await showModelLoading(selectedModel);
+        const cfg = getModelConfig();
+        if (!llmEngine || llmCurrentModel !== cfg.id) {
+          await showModelLoading(cfg.key);
         }
         const resp = await llmEngine.chat.completions.create({
-          messages: buildMsgs(), stream: true, temperature: 0.7, max_tokens: 1024,
+          messages: buildMsgs(), stream: true, temperature: 0.7,
         });
         for await (const chunk of resp) {
           const delta = chunk.choices[0]?.delta?.content || '';
@@ -1355,12 +1481,72 @@
         }
       }
     } catch (err) {
+      console.error('Reader chat error:', err);
       if (!chatHistory[chatHistory.length - 1].content) {
-        chatHistory[chatHistory.length - 1].content = 'Something went wrong. Please try again.';
+        chatHistory[chatHistory.length - 1].content = 'Something went wrong: ' + (err.message || err);
       }
       renderChat();
     }
     chatStreaming = false;
+  }
+
+  // --- Highlight-to-chat tooltip ---
+  const selTooltip = document.getElementById('reader-sel-tooltip');
+  let selText = '';
+
+  function hideSelTooltip() {
+    selTooltip.classList.remove('visible');
+    selText = '';
+  }
+
+  readerContent.addEventListener('mouseup', () => {
+    setTimeout(() => {
+      const sel = window.getSelection();
+      const text = sel ? sel.toString().trim() : '';
+      if (!text || text.length < 2) { hideSelTooltip(); return; }
+
+      const range = sel.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      const parentRect = document.querySelector('.reader-body').getBoundingClientRect();
+
+      selTooltip.style.left = (rect.left + rect.width / 2 - parentRect.left) + 'px';
+      selTooltip.style.top = (rect.top - parentRect.top - 44) + 'px';
+      selTooltip.style.transform = 'translateX(-50%)';
+      selText = text;
+      selTooltip.classList.add('visible');
+    }, 10);
+  });
+
+  document.addEventListener('mousedown', (e) => {
+    if (selTooltip.contains(e.target)) return;
+    hideSelTooltip();
+  });
+
+  document.getElementById('reader-sel-ask').addEventListener('click', () => {
+    if (!selText) return;
+    const quote = '"' + (selText.length > 200 ? selText.slice(0, 200) + '…' : selText) + '"';
+    chatInput.value = 'Regarding this passage: ' + quote + '\n\n';
+    chatInput.focus();
+    chatInput.style.height = 'auto';
+    chatInput.style.height = chatInput.scrollHeight + 'px';
+    window.getSelection().removeAllRanges();
+    hideSelTooltip();
+  });
+
+  const WORKER_URL = 'https://bibleverse-ai.bibleverse.workers.dev';
+
+  async function callWorkerAI(msgs, onDelta) {
+    const resp = await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: msgs, temperature: 0.7 }),
+    });
+    const text = await resp.text();
+    if (!resp.ok) throw new Error('Worker ' + resp.status + ': ' + text);
+    let data;
+    try { data = JSON.parse(text); } catch (e) { throw new Error('Invalid JSON: ' + text.slice(0, 200)); }
+    const content = data.choices?.[0]?.message?.content || '';
+    if (content) onDelta(content);
   }
 
   async function streamOpenAI(msgs, key, onDelta) {
@@ -1518,8 +1704,10 @@
       requestAnimationFrame(tryStartRotation);
     }
   }
-  tryStartRotation();
-  plotEl.on('plotly_afterplot', tryStartRotation);
+  if (!isMobileDevice) {
+    tryStartRotation();
+    plotEl.on('plotly_afterplot', tryStartRotation);
+  }
 
 
   // --- Homepage: unified Search | Chat interface ---
@@ -1537,39 +1725,69 @@
   const homeChatModelSelect = setupDropdown('cd-home-model', 'cd-home-model-trigger', 'cd-home-model-menu', async (val) => {
     localStorage.setItem('bv_llm_model', val);
     chatModelSelect.value = val;
-    if (!localStorage.getItem('bv_openai_key') && navigator.gpu && llmCurrentModel !== val) {
+    const underlying = (LLM_MODELS.find(m => m.key === val) || LLM_MODELS[0]).id;
+    if (!localStorage.getItem('bv_openai_key') && !isMobileDevice && navigator.gpu && llmCurrentModel !== underlying) {
       homeChatHistory = [];
       renderHomeChat();
       await showHomeModelLoading(val);
     }
   });
-  homeChatModelSelect.setItems(LLM_MODELS.map(m => ({ value: m.id, label: m.menu, triggerLabel: m.label })));
+  homeChatModelSelect.setItems(LLM_MODELS.map(m => ({ value: m.key, label: m.menu, triggerLabel: m.label })));
   homeChatModelSelect.value = getSelectedModel();
 
   const homeModelLoadingEl = document.getElementById('home-chat-model-loading');
   const homeModelLoadingText = document.getElementById('hcml-text');
   const homeModelLoadingBar = document.getElementById('hcml-bar');
 
-  async function showHomeModelLoading(modelId) {
-    const label = LLM_MODELS.find(m => m.id === modelId)?.label || modelId;
+  async function showHomeModelLoading(modelKey) {
+    const model = LLM_MODELS.find(m => m.key === modelKey) || LLM_MODELS[0];
+    const modelId = model.id;
+    const label = model.label;
     homeModelLoadingText.textContent = label;
     homeModelLoadingBar.style.width = '0%';
     homeModelLoadingEl.classList.add('active');
+    let maxPct = 0;
+    const progressCb = function (report) {
+      const pct = Math.round((report.progress || 0) * 100);
+      if (pct > maxPct) maxPct = pct;
+      homeModelLoadingBar.style.width = maxPct + '%';
+      homeModelLoadingText.textContent = maxPct >= 100 ? 'Starting ' + label : label;
+    };
     try {
-      await initLLM(modelId, function (report) {
-        const pct = Math.round((report.progress || 0) * 100);
-        homeModelLoadingBar.style.width = pct + '%';
-        homeModelLoadingText.textContent = pct >= 100 ? 'Starting ' + label : label;
-      });
+      await initLLM(modelId, progressCb);
+      llmReady = true;
     } finally {
       homeModelLoadingEl.classList.remove('active');
     }
   }
 
+  function estimateTokens(text) {
+    return Math.ceil(text.length / 3.5);
+  }
+
+  function trimToContextLimit(history, sysTokens, limit) {
+    let total = sysTokens;
+    for (const m of history) {
+      if (m.content) total += estimateTokens(m.content);
+    }
+    const trimmed = [...history];
+    while (total > limit && trimmed.length > 2) {
+      const removed = trimmed.shift();
+      if (removed.content) total -= estimateTokens(removed.content);
+      if (trimmed.length > 0 && trimmed[0].role === 'assistant') {
+        const removed2 = trimmed.shift();
+        if (removed2.content) total -= estimateTokens(removed2.content);
+      }
+    }
+    return trimmed;
+  }
+
   function buildHomeMsgs() {
-    const sys = 'Speak with the directness of Dostoevsky and the reverence of the Greek Orthodox tradition. Terse, serious, no pleasantries, no filler. Say exactly what must be said — no more. Cite relevant verses when they are the answer, not decoration. If one sentence suffices, give one sentence. Conciseness is paramount.';
-    const msgs = [{ role: 'system', content: sys }];
-    for (const m of homeChatHistory) {
+    const model = getModelConfig();
+    const sysTokens = estimateTokens(model.sysPrompt);
+    const trimmed = trimToContextLimit(homeChatHistory, sysTokens, model.contextLimit);
+    const msgs = [{ role: 'system', content: model.sysPrompt }];
+    for (const m of trimmed) {
       if (m.content) msgs.push({ role: m.role, content: m.content });
     }
     return msgs;
@@ -1585,12 +1803,14 @@
     }
     homeChatWelcome.style.display = 'none';
     homeChatMessages.style.display = '';
+    const typingDots = '<div class="chat-typing-dots"><span></span><span></span><span></span></div>';
     homeChatMessages.innerHTML = homeChatHistory.map(m => {
       const cls = m.role === 'user' ? 'chat-msg-user' : 'chat-msg-assistant';
       const label = m.role === 'user' ? 'You' : 'BibleVerse';
+      const body = m.role === 'assistant' && !m.content ? typingDots : formatChat(m.content);
       return '<div class="chat-msg ' + cls + '">' +
         '<div class="chat-msg-label">' + label + '</div>' +
-        '<div class="chat-bubble">' + formatChat(m.content) + '</div></div>';
+        '<div class="chat-bubble">' + body + '</div></div>';
     }).join('');
     homeChatMessages.scrollTop = homeChatMessages.scrollHeight;
   }
@@ -1605,11 +1825,14 @@
 
   const homeChatContainer = document.getElementById('home-chat');
 
+  const mobileTopbar = document.getElementById('mobile-topbar');
+
   function enterChatMode() {
     if (homeChatContainer.classList.contains('chatting')) return;
     homeChatContainer.classList.add('chatting');
     document.body.style.overflow = 'hidden';
-    homeChatInput.placeholder = 'Ask anything about the Bible...';
+    homeChatInput.placeholder = window.innerWidth <= 800 ? 'Enter any text...' : 'Ask anything about the Bible...';
+    if (mobileTopbar && window.innerWidth <= 800) mobileTopbar.style.display = 'none';
   }
 
   function exitChatMode() {
@@ -1618,12 +1841,19 @@
     homeChatHistory = [];
     renderHomeChat();
     switchHomeMode('chat');
+    if (mobileTopbar && window.innerWidth <= 800) mobileTopbar.style.display = 'flex';
   }
 
   document.getElementById('home-chat-back').addEventListener('click', exitChatMode);
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && homeChatContainer.classList.contains('chatting')) exitChatMode();
   });
+
+  const homeInputWrap = document.querySelector('.home-chat-input-wrap');
+
+  function setHomeStreaming(on) {
+    homeChatStreaming = on;
+  }
 
   async function sendHomeChat() {
     const text = homeChatInput.value.trim();
@@ -1635,7 +1865,7 @@
     homeChatHistory.push({ role: 'user', content: text });
     homeChatHistory.push({ role: 'assistant', content: '' });
     renderHomeChat();
-    homeChatStreaming = true;
+    setHomeStreaming(true);
 
     const homeOnDelta = (delta) => {
       homeChatHistory[homeChatHistory.length - 1].content += delta;
@@ -1647,21 +1877,15 @@
     try {
       if (apiKey) {
         await streamOpenAI(buildHomeMsgs(), apiKey, homeOnDelta);
+      } else if (isMobileDevice) {
+        await callWorkerAI(buildHomeMsgs(), homeOnDelta);
       } else {
-        if (!navigator.gpu) {
-          homeChatHistory[homeChatHistory.length - 1].content =
-            'Your browser does not support WebGPU, which is required for in-browser AI.\n\n' +
-            'Use Chrome or Edge for the best experience, or add an OpenAI API key in the reader settings.';
-          renderHomeChat();
-          homeChatStreaming = false;
-          return;
-        }
-        const selectedModel = getSelectedModel();
-        if (!llmEngine || llmCurrentModel !== selectedModel) {
-          await showHomeModelLoading(selectedModel);
+        const cfg = getModelConfig();
+        if (!llmEngine || llmCurrentModel !== cfg.id) {
+          await initLLM(cfg.id);
         }
         const resp = await llmEngine.chat.completions.create({
-          messages: buildHomeMsgs(), stream: true, temperature: 0.7, max_tokens: 1024,
+          messages: buildHomeMsgs(), stream: true, temperature: 0.7,
         });
         for await (const chunk of resp) {
           const delta = chunk.choices[0]?.delta?.content || '';
@@ -1669,12 +1893,13 @@
         }
       }
     } catch (err) {
+      console.error('Home chat error:', err);
       if (!homeChatHistory[homeChatHistory.length - 1].content) {
-        homeChatHistory[homeChatHistory.length - 1].content = 'Something went wrong. Please try again.';
+        homeChatHistory[homeChatHistory.length - 1].content = 'Something went wrong: ' + (err.message || err);
       }
       renderHomeChat();
     }
-    homeChatStreaming = false;
+    setHomeStreaming(false);
   }
 
   const homeSearchFooter = document.getElementById('home-search-footer');
@@ -1696,6 +1921,9 @@
     if (searchInput.value.trim().length >= 1) doSearch();
   });
 
+  const modelPickerEl = document.getElementById('model-picker');
+  let chatModelChosen = false;
+
   function switchHomeMode(mode) {
     homeMode = mode;
     homeModeSearchBtn.classList.toggle('active', mode === 'search');
@@ -1703,19 +1931,52 @@
     const isMobile = window.innerWidth <= 800;
     homeChatInput.placeholder = mode === 'search'
       ? (isMobile ? 'Enter any text...' : 'Enter any word, phrase, or idea to find the most relevant verses and passages in the Bible...')
-      : (isMobile ? 'Ask anything...' : 'Ask anything about the Bible...');
+      : (isMobile ? 'Enter any text...' : 'Ask anything about the Bible...');
     homeSearchFooter.style.display = mode === 'search' ? '' : 'none';
-    homeChatFooter.style.display = mode === 'chat' ? '' : 'none';
+    homeModelLoadingEl.classList.toggle('hidden-by-mode', mode === 'search');
     if (mode === 'search') {
       homeChatMessages.style.display = 'none';
+      modelPickerEl.style.display = 'none';
+      homeChatFooter.style.display = 'none';
+      document.querySelector('.home-chat-input-area').style.display = '';
     } else {
       if (homeSearchResults.style.display !== 'none') {
         homeSearchResults.style.display = 'none';
         clearSearch();
         restoreSphere();
       }
+      if (!chatModelChosen && !isMobileDevice && navigator.gpu) {
+        modelPickerEl.style.display = '';
+        document.querySelector('.home-chat-input-area').style.display = 'none';
+      } else {
+        modelPickerEl.style.display = 'none';
+        document.querySelector('.home-chat-input-area').style.display = '';
+        homeChatFooter.style.display = '';
+      }
     }
   }
+
+  document.querySelectorAll('.model-card').forEach(card => {
+    card.addEventListener('click', async () => {
+      const modelKey = card.dataset.model;
+      const underlying = (LLM_MODELS.find(m => m.key === modelKey) || LLM_MODELS[0]).id;
+      chatModelChosen = true;
+      modelPickerEl.style.display = 'none';
+
+      localStorage.setItem('bv_llm_model', modelKey);
+      chatModelSelect.value = modelKey;
+      homeChatModelSelect.value = modelKey;
+
+      document.querySelector('.home-chat-input-area').style.display = '';
+      homeChatFooter.style.display = '';
+
+      const apiKey = localStorage.getItem('bv_openai_key');
+      if (!apiKey && !isMobileDevice && navigator.gpu && (!llmEngine || llmCurrentModel !== underlying)) {
+        await showHomeModelLoading(modelKey);
+      }
+      homeChatInput.focus();
+    });
+  });
 
   homeModeSearchBtn.addEventListener('click', () => switchHomeMode('search'));
   homeModeChatBtn.addEventListener('click', () => switchHomeMode('chat'));
@@ -1742,8 +2003,8 @@
     if (homeMode === 'search') loadSearchAssets();
   });
 
-  // Pre-load search assets after splash screen
-  setTimeout(() => loadSearchAssets(), 5500);
+  // Pre-load search assets after splash screen (only if in search mode)
+  setTimeout(() => { if (homeMode === 'search') loadSearchAssets(); }, 5500);
 
   document.getElementById('search-back-btn').addEventListener('click', () => {
     clearSearch();
@@ -1805,4 +2066,35 @@
       wireSearch('rv-nt-search', 'rv-nt-list');
     }
   }
-})();
+
+  /* --- Mobile-specific wiring --- */
+  if (window.innerWidth <= 800) {
+    switchHomeMode('chat');
+    chatModelChosen = true;
+
+    const mobileReader = document.getElementById('mobile-open-reader');
+    if (mobileReader) {
+      mobileReader.addEventListener('click', () => {
+        openReader(1, []);
+      });
+    }
+
+    document.querySelectorAll('.mobile-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const q = chip.dataset.q;
+        if (!q) return;
+        homeChatInput.value = q;
+        homeChatSendBtn.classList.add('ready');
+        handleHomeSubmit();
+      });
+    });
+  }
+})().catch(function(err) {
+  console.error('IIFE crash:', err);
+  if (window.innerWidth <= 800) {
+    var d = document.createElement('div');
+    d.style.cssText = 'position:fixed;bottom:60px;left:10px;right:10px;background:rgba(220,40,40,0.9);color:#fff;padding:12px;border-radius:8px;font:12px monospace;z-index:999999;word-break:break-all;';
+    d.textContent = 'JS Error: ' + (err.message || err) + ' | ' + (err.stack || '').split('\n').slice(0,3).join(' | ');
+    document.body.appendChild(d);
+  }
+});
