@@ -2,10 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>BibleVerse</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23f0d878'/><stop offset='1' stop-color='%23a07828'/></linearGradient></defs><path d='M14 2h4v28h-4zM8 9h16v4H8z' fill='url(%23g)'/></svg>">
-  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=3">
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#06060c">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
@@ -35,71 +39,64 @@
       height: 100vh;
     }
 
-    /* --- Mobile notice --- */
-    .mobile-notice-overlay {
-      display: none;
+    /* --- Mobile onboarding tooltips --- */
+    .mobile-tooltip {
       position: fixed;
-      inset: 0;
       z-index: 99999;
-      background: rgba(0,0,0,0.75);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      align-items: center;
-      justify-content: center;
-      padding: 32px;
+      max-width: 260px;
+      animation: tooltipIn 0.3s ease-out;
     }
-    .mobile-notice {
-      max-width: 380px;
-      width: 100%;
-      background: rgba(14,14,22,0.95);
-      border: 1px solid rgba(201,168,76,0.12);
-      border-radius: 20px;
-      padding: 40px 32px 32px;
-      text-align: center;
+    @keyframes tooltipIn {
+      from { opacity: 0; transform: scale(0.92); }
+      to { opacity: 1; transform: scale(1); }
     }
-    .mobile-notice-icon {
-      font-size: 2.2rem;
-      margin-bottom: 18px;
-      opacity: 0.8;
+    .mobile-tooltip-body {
+      background: rgba(18,18,28,0.97);
+      border: 1px solid rgba(201,168,76,0.15);
+      border-radius: 14px;
+      padding: 16px 18px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
     }
-    .mobile-notice h2 {
-      font-family: var(--font);
-      font-size: 1.8rem;
-      font-weight: 600;
-      color: rgba(232,228,220,0.88);
-      letter-spacing: -0.02em;
+    .mobile-tooltip-body p {
+      font-family: var(--sans);
+      font-size: 0.85rem;
+      color: rgba(232,228,220,0.65);
+      line-height: 1.6;
       margin: 0 0 12px;
     }
-    .mobile-notice p {
-      font-family: var(--sans);
-      font-size: 1.2rem;
-      color: rgba(232,228,220,0.5);
-      line-height: 1.65;
-      margin: 0 0 28px;
-    }
-    .mobile-notice-btn {
+    .mobile-tooltip-btn {
       background: rgba(201,168,76,0.12);
       border: 1px solid rgba(201,168,76,0.18);
-      border-radius: 12px;
+      border-radius: 8px;
       color: rgba(232,228,220,0.8);
       font-family: var(--sans);
-      font-size: 1.2rem;
-      font-weight: 500;
-      padding: 14px 36px;
+      font-size: 0.8rem;
+      padding: 8px 20px;
       cursor: pointer;
       transition: all 0.2s;
-      letter-spacing: 0.01em;
     }
-    .mobile-notice-btn:hover {
-      background: rgba(201,168,76,0.2);
-      color: rgba(232,228,220,0.95);
+    .mobile-tooltip-arrow-top {
+      position: absolute;
+      top: -6px;
+      width: 12px;
+      height: 12px;
+      background: rgba(18,18,28,0.97);
+      border-left: 1px solid rgba(201,168,76,0.15);
+      border-top: 1px solid rgba(201,168,76,0.15);
+      transform: rotate(45deg);
     }
-    .mobile-notice-url {
-      font-family: var(--mono);
-      font-size: 0.9rem;
-      color: rgba(201,168,76,0.45);
-      letter-spacing: 0.04em;
-      margin-top: 8px;
+    .mobile-tooltip-arrow-top.arrow-left { left: 20px; }
+    .mobile-tooltip-arrow-top.arrow-right { right: 20px; }
+    .mobile-tooltip-arrow-bottom {
+      position: absolute;
+      bottom: -6px;
+      left: 24px;
+      width: 12px;
+      height: 12px;
+      background: rgba(18,18,28,0.97);
+      border-right: 1px solid rgba(201,168,76,0.15);
+      border-bottom: 1px solid rgba(201,168,76,0.15);
+      transform: rotate(45deg);
     }
 
     /* --- Onboarding walkthrough --- */
@@ -228,7 +225,7 @@
     .mobile-topbar {
       display: none;
       align-items: center;
-      padding: 14px 18px;
+      padding: 10px 14px;
       background: rgba(0,0,0,0.85);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
@@ -236,6 +233,22 @@
       position: sticky;
       top: 0;
       z-index: 1000;
+    }
+    .mobile-topbar-icon {
+      background: none;
+      border: none;
+      color: rgba(232,228,220,0.7);
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 8px;
+      transition: color 0.15s, background 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .mobile-topbar-icon:active {
+      background: rgba(255,255,255,0.06);
+      color: rgba(232,228,220,0.9);
     }
     .mobile-topbar-book {
       background: none;
@@ -259,16 +272,332 @@
       letter-spacing: -0.01em;
       color: rgba(232,228,220,0.85);
     }
-    .mobile-topbar-spacer { width: 34px; }
 
-    /* --- Mobile model label --- */
+    /* Chat history panel */
+    .mobile-history-panel {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 80vw;
+      max-width: 320px;
+      height: 100%;
+      height: 100dvh;
+      background: rgba(12,12,18,0.98);
+      z-index: 10000;
+      flex-direction: column;
+      box-shadow: 4px 0 24px rgba(0,0,0,0.5);
+      transform: translateX(-100%);
+      transition: transform 0.25s ease-out;
+    }
+    .mobile-history-panel.open {
+      display: flex;
+      transform: translateX(0);
+    }
+    .mobile-history-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      font-family: var(--sans);
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: rgba(232,228,220,0.7);
+    }
+    .mobile-history-header button {
+      background: none;
+      border: none;
+      color: rgba(232,228,220,0.4);
+      font-size: 1.3rem;
+      cursor: pointer;
+      padding: 4px 8px;
+    }
+    .mobile-history-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 0;
+    }
+    .mobile-history-item {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      background: none;
+      border: none;
+      text-align: left;
+      padding: 12px 18px;
+      cursor: pointer;
+      transition: background 0.15s;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      position: relative;
+    }
+    .mobile-history-item:active {
+      background: rgba(255,255,255,0.05);
+    }
+    .mobile-history-item-content {
+      flex: 1;
+      min-width: 0;
+    }
+    .mobile-history-item-title {
+      font-family: var(--sans);
+      font-size: 0.85rem;
+      color: rgba(232,228,220,0.7);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .mobile-history-item-time {
+      font-family: var(--sans);
+      font-size: 0.7rem;
+      color: rgba(232,228,220,0.3);
+      margin-top: 3px;
+    }
+    .mobile-history-delete {
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: none;
+      border-radius: 8px;
+      color: rgba(232,228,220,0.18);
+      cursor: pointer;
+      margin-left: 8px;
+      transition: all 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mobile-history-delete:hover {
+      color: rgba(220,80,80,0.7);
+      background: rgba(220,80,80,0.08);
+    }
+    .mobile-history-delete:active {
+      transform: scale(0.9);
+      color: rgba(220,80,80,0.9);
+    }
+    .mobile-history-delete svg {
+      width: 15px;
+      height: 15px;
+    }
+    .mobile-history-confirm {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: rgba(18,16,22,0.97);
+      z-index: 2;
+      animation: histFadeIn 0.15s ease;
+    }
+    @keyframes histFadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .mobile-history-confirm span {
+      font-family: var(--sans);
+      font-size: 0.75rem;
+      color: rgba(232,228,220,0.5);
+    }
+    .mobile-history-confirm-yes {
+      background: rgba(220,80,80,0.12);
+      border: 1px solid rgba(220,80,80,0.25);
+      border-radius: 8px;
+      color: rgba(220,80,80,0.9);
+      font-family: var(--sans);
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 5px 14px;
+      cursor: pointer;
+    }
+    .mobile-history-confirm-yes:active { transform: scale(0.95); }
+    .mobile-history-confirm-no {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      color: rgba(232,228,220,0.5);
+      font-family: var(--sans);
+      font-size: 0.72rem;
+      font-weight: 500;
+      padding: 5px 14px;
+      cursor: pointer;
+    }
+    .mobile-history-confirm-no:active { transform: scale(0.95); }
+    .mobile-history-empty {
+      padding: 40px 18px;
+      text-align: center;
+      font-family: var(--sans);
+      font-size: 0.85rem;
+      color: rgba(232,228,220,0.3);
+    }
+    .mobile-history-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 9999;
+    }
+    .mobile-history-overlay.open { display: block; }
+
+    /* --- Mobile model dropdown --- */
     .mobile-model-label {
       display: none;
       font-family: var(--sans);
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       color: rgba(232,228,220,0.35);
       letter-spacing: 0.03em;
       margin-bottom: 6px;
+      position: relative;
+    }
+    .mobile-model-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: none;
+      border: none;
+      color: rgba(232,228,220,0.5);
+      font-family: var(--sans);
+      font-size: 0.8rem;
+      cursor: pointer;
+      padding: 0;
+    }
+    .mobile-model-trigger svg {
+      width: 10px;
+      height: 10px;
+      opacity: 0.4;
+      transition: transform 0.2s;
+    }
+    .mobile-model-label.open .mobile-model-trigger svg {
+      transform: rotate(180deg);
+    }
+    .mobile-model-menu {
+      display: none;
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 0;
+      background: rgba(18,18,28,0.98);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 4px;
+      min-width: 180px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      z-index: 100;
+    }
+    .mobile-model-label.open .mobile-model-menu {
+      display: block;
+    }
+    /* --- Model info icon + popup --- */
+    .model-info-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 1px solid rgba(201,168,76,0.2);
+      background: none;
+      color: rgba(201,168,76,0.45);
+      font-family: var(--sans);
+      font-size: 0.6rem;
+      font-style: normal;
+      font-weight: 600;
+      cursor: pointer;
+      margin-left: 6px;
+      padding: 0;
+      line-height: 1;
+      transition: all 0.15s;
+      -webkit-tap-highlight-color: transparent;
+      flex-shrink: 0;
+      vertical-align: middle;
+    }
+    .model-info-btn:active {
+      background: rgba(201,168,76,0.1);
+      color: rgba(201,168,76,0.7);
+    }
+    .model-info-popup-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10020;
+      background: rgba(0,0,0,0.45);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    .model-info-popup-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .model-info-popup {
+      position: fixed;
+      z-index: 10021;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%) scale(0.95);
+      width: min(88vw, 340px);
+      background: rgba(18,16,22,0.97);
+      border: 1px solid rgba(201,168,76,0.12);
+      border-radius: 16px;
+      padding: 24px 22px 20px;
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      box-shadow: 0 12px 48px rgba(0,0,0,0.6);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    .model-info-popup.open {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    .model-info-popup-title {
+      font-family: var(--sans);
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: rgba(232,228,220,0.95);
+      margin-bottom: 14px;
+      letter-spacing: 0.01em;
+    }
+    .model-info-popup-body {
+      font-family: var(--sans);
+      font-size: 0.74rem;
+      line-height: 1.65;
+      color: rgba(232,228,220,0.65);
+      letter-spacing: 0.01em;
+    }
+    .model-info-popup-body strong {
+      color: rgba(201,168,76,0.85);
+      font-weight: 600;
+    }
+    .model-info-popup-body .model-info-sep {
+      display: block;
+      width: 100%;
+      height: 1px;
+      background: rgba(255,255,255,0.05);
+      margin: 12px 0;
+    }
+    .mobile-model-option {
+      display: block;
+      width: 100%;
+      background: none;
+      border: none;
+      color: rgba(232,228,220,0.6);
+      font-family: var(--sans);
+      font-size: 0.85rem;
+      padding: 10px 14px;
+      text-align: left;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .mobile-model-option:hover,
+    .mobile-model-option.active {
+      background: rgba(201,168,76,0.1);
+      color: rgba(232,228,220,0.85);
+    }
+    .mobile-model-option.active {
+      color: rgba(201,168,76,0.85);
     }
 
     /* --- Mobile suggestion chips --- */
@@ -288,6 +617,78 @@
     .mobile-chip:active {
       background: rgba(201,168,76,0.1);
       border-color: rgba(201,168,76,0.2);
+    }
+
+    /* --- Welcome screen --- */
+    .welcome-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 100001;
+      background: rgb(6,6,12);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 32px;
+      text-align: center;
+    }
+    .welcome-cross {
+      width: 48px;
+      height: auto;
+      margin-bottom: 24px;
+      opacity: 0.85;
+    }
+    .welcome-title {
+      font-family: var(--font);
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: rgba(232,228,220,0.9);
+      letter-spacing: -0.02em;
+      margin-bottom: 28px;
+    }
+    .welcome-text {
+      font-family: var(--sans);
+      font-size: 0.88rem;
+      line-height: 1.7;
+      color: rgba(232,228,220,0.55);
+      max-width: 380px;
+      margin: 0 0 16px;
+    }
+    .welcome-footer {
+      font-family: var(--sans);
+      font-size: 0.75rem;
+      color: rgba(232,228,220,0.3);
+      margin-top: 28px;
+    }
+    .welcome-footer a {
+      color: rgba(201,168,76,0.6);
+      text-decoration: none;
+    }
+    .welcome-footer a:hover { color: rgba(201,168,76,0.85); }
+    .welcome-enter {
+      margin-top: 36px;
+      background: rgba(201,168,76,0.1);
+      border: 1px solid rgba(201,168,76,0.2);
+      border-radius: 10px;
+      color: rgba(232,228,220,0.75);
+      font-family: var(--sans);
+      font-size: 0.85rem;
+      font-weight: 500;
+      padding: 12px 40px;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.02em;
+    }
+    .welcome-enter:active {
+      background: rgba(201,168,76,0.18);
+      color: rgba(232,228,220,0.9);
+    }
+    .welcome-beta {
+      font-family: var(--sans);
+      font-size: 0.65rem;
+      color: rgba(232,228,220,0.2);
+      margin-top: 16px;
+      letter-spacing: 0.02em;
     }
 
     /* --- Splash intro --- */
@@ -1364,9 +1765,12 @@
       right: 370px;
       bottom: 0;
       overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
       padding: 40px 20px 80px;
       scrollbar-width: auto;
       scrollbar-color: rgba(232,228,220,0.15) transparent;
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
     }
     .reader-content::-webkit-scrollbar { width: 8px; }
     .reader-content::-webkit-scrollbar-track { background: transparent; }
@@ -1383,6 +1787,8 @@
       margin-left: auto;
       margin-right: auto;
       transform: translateX(185px);
+      -webkit-user-select: text;
+      user-select: text;
     }
     .reader-chapter-heading {
       font-family: var(--sans);
@@ -1396,6 +1802,180 @@
       border-bottom: 1px solid rgba(201,168,76,0.06);
     }
     .reader-chapter-heading:first-child { margin-top: 0; }
+
+    /* --- Verse action popover --- */
+    .verse-popover {
+      display: none;
+      position: fixed;
+      z-index: 10001;
+      background: rgba(22,22,28,0.96);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 8px 10px;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+    .verse-popover.visible { display: flex; }
+    .vp-colors {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .vp-color {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 2.5px solid transparent;
+      cursor: pointer;
+      transition: transform 0.12s, border-color 0.15s;
+      flex-shrink: 0;
+    }
+    .vp-color:active { transform: scale(0.85); }
+    .vp-color[data-color="green"] { background: rgba(76,175,80,0.8); }
+    .vp-color[data-color="blue"] { background: rgba(100,149,237,0.8); }
+    .vp-color[data-color="red"] { background: rgba(220,80,80,0.8); }
+    .vp-color.selected { border-color: rgba(201,168,76,0.9); }
+    .vp-clear {
+      background: none !important;
+      border: 2px solid rgba(232,228,220,0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .vp-clear svg { width: 12px; height: 12px; color: rgba(232,228,220,0.35); }
+    .vp-divider {
+      width: 1px;
+      height: 20px;
+      background: rgba(255,255,255,0.08);
+      margin: 0 2px;
+    }
+    .vp-note-btn {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: none;
+      border: none;
+      color: rgba(232,228,220,0.6);
+      font-family: var(--sans);
+      font-size: 0.72rem;
+      font-weight: 500;
+      cursor: pointer;
+      padding: 4px 6px;
+      border-radius: 6px;
+      transition: color 0.15s, background 0.15s;
+      white-space: nowrap;
+    }
+    .vp-note-btn:active {
+      color: rgba(201,168,76,0.9);
+      background: rgba(201,168,76,0.08);
+    }
+
+    /* --- Notes modal overlay --- */
+    .note-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 10002;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+    .note-modal-overlay.visible { display: flex; }
+    .note-modal {
+      background: rgba(18,16,22,0.97);
+      border: 1px solid rgba(201,168,76,0.15);
+      border-radius: 16px;
+      width: 92%;
+      max-width: 380px;
+      padding: 24px 20px 20px;
+      box-shadow: 0 12px 48px rgba(0,0,0,0.6);
+    }
+    .note-modal h3 {
+      font-family: var(--sans);
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: rgba(232,228,220,0.85);
+      margin: 0 0 16px;
+      letter-spacing: 0.01em;
+    }
+    .note-modal-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .note-modal-select {
+      flex: 1;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      padding: 9px 10px;
+      color: rgba(232,228,220,0.8);
+      font-family: var(--sans);
+      font-size: 0.75rem;
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .note-modal-select:focus { border-color: rgba(201,168,76,0.3); }
+    .note-modal-select option {
+      background: #12101a;
+      color: rgba(232,228,220,0.8);
+    }
+    .note-modal textarea {
+      width: 100%;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      padding: 10px 12px;
+      color: rgba(232,228,220,0.8);
+      font-family: var(--sans);
+      font-size: 0.78rem;
+      outline: none;
+      resize: none;
+      min-height: 72px;
+      line-height: 1.5;
+      margin-bottom: 14px;
+      transition: border-color 0.2s;
+      box-sizing: border-box;
+    }
+    .note-modal textarea:focus { border-color: rgba(201,168,76,0.3); }
+    .note-modal textarea::placeholder { color: rgba(232,228,220,0.2); }
+    .note-modal-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+    .note-modal-cancel {
+      padding: 8px 18px;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      background: none;
+      color: rgba(232,228,220,0.45);
+      font-family: var(--sans);
+      font-size: 0.73rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .note-modal-save {
+      padding: 8px 22px;
+      border: 1px solid rgba(201,168,76,0.25);
+      border-radius: 10px;
+      background: rgba(201,168,76,0.12);
+      color: rgba(201,168,76,0.9);
+      font-family: var(--sans);
+      font-size: 0.73rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .note-modal-save:active { transform: scale(0.96); }
     .reader-verse {
       display: inline;
     }
@@ -1407,11 +1987,29 @@
       margin-right: 2px;
       margin-left: 4px;
       line-height: 0;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      padding: 8px 5px;
+      border-radius: 4px;
+      transition: color 0.15s, background 0.15s;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    .reader-verse-num:active {
+      color: rgba(201,168,76,0.7);
+      background: rgba(201,168,76,0.08);
     }
     .reader-verse-text {
       font-size: 0.92rem;
       line-height: 2;
       color: rgba(232,228,220,0.7);
+      -webkit-user-select: text;
+      user-select: text;
+      -webkit-touch-callout: none;
+    }
+    .reader-verse-text::selection {
+      background: rgba(100,149,237,0.35);
+      color: inherit;
     }
     .reader-verse.highlight .reader-verse-text {
       color: rgba(232,228,220,0.95);
@@ -1425,11 +2023,12 @@
 
     /* --- Reader selection tooltip --- */
     .reader-sel-tooltip {
-      position: absolute;
-      z-index: 1000;
+      position: fixed;
+      z-index: 10001;
       pointer-events: none;
+      max-width: calc(100vw - 16px);
       opacity: 0;
-      transform: translateY(4px) scale(0.96);
+      transform: translateY(-4px) scale(0.96);
       transition: opacity 0.18s ease, transform 0.18s ease;
     }
     .reader-sel-tooltip.visible {
@@ -1437,16 +2036,26 @@
       opacity: 1;
       transform: translateY(0) scale(1);
     }
+    .reader-sel-tooltip-inner {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      padding: 4px 5px;
+      border: 1px solid rgba(201,168,76,0.18);
+      border-radius: 12px;
+      background: rgba(18,16,22,0.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 6px 28px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(201,168,76,0.08);
+    }
     .reader-sel-tooltip button {
       display: flex;
       align-items: center;
       gap: 6px;
-      padding: 7px 14px;
-      border: 1px solid rgba(201,168,76,0.18);
-      border-radius: 10px;
-      background: rgba(18,16,22,0.88);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+      padding: 6px 14px;
+      border: none;
+      border-radius: 8px;
+      background: none;
       color: rgba(232,228,220,0.85);
       font-family: var(--sans);
       font-size: 0.72rem;
@@ -1454,18 +2063,82 @@
       letter-spacing: 0.01em;
       cursor: pointer;
       white-space: nowrap;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.45), 0 0 0 0.5px rgba(201,168,76,0.08);
       transition: all 0.15s ease;
     }
-    .reader-sel-tooltip button:hover {
-      background: rgba(28,24,36,0.92);
-      border-color: rgba(201,168,76,0.32);
-      color: rgba(232,228,220,0.95);
-      box-shadow: 0 4px 24px rgba(0,0,0,0.5), 0 0 0 0.5px rgba(201,168,76,0.15);
+    .reader-sel-tooltip button:active {
+      background: rgba(255,255,255,0.06);
     }
     .reader-sel-tooltip button svg {
       opacity: 0.7;
       color: rgba(201,168,76,0.8);
+    }
+
+    /* (highlight colors are now in toolbar) */
+
+    /* --- Verse note indicator dot --- */
+    .reader-verse-note-dot {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      vertical-align: middle;
+      margin-left: 2px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.15s;
+    }
+    .reader-verse-note-dot::after {
+      content: '';
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: rgba(201,168,76,0.65);
+    }
+    .reader-verse-note-dot:active { transform: scale(1.2); }
+
+    @keyframes verse-flash {
+      0%   { background: rgba(201,168,76,0.18); }
+      100% { background: transparent; }
+    }
+    .reader-verse-flash .reader-verse-text {
+      animation: verse-flash 1.4s ease-out forwards;
+      border-radius: 3px;
+    }
+
+    /* --- Save as Note button on AI messages --- */
+    .chat-msg-save-note {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 6px;
+      padding: 4px 10px;
+      background: none;
+      border: 1px solid rgba(201,168,76,0.15);
+      border-radius: 8px;
+      color: rgba(201,168,76,0.6);
+      font-family: var(--sans);
+      font-size: 0.65rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      letter-spacing: 0.01em;
+    }
+    .chat-msg-save-note:hover {
+      background: rgba(201,168,76,0.06);
+      color: rgba(201,168,76,0.85);
+      border-color: rgba(201,168,76,0.3);
+    }
+    .chat-msg-save-note:active { transform: scale(0.96); }
+    .chat-msg-save-note svg {
+      width: 12px;
+      height: 12px;
+      opacity: 0.7;
+    }
+    .chat-msg-save-note.saved {
+      color: rgba(201,168,76,0.45);
+      border-color: rgba(201,168,76,0.1);
+      pointer-events: none;
     }
 
     /* --- Reader chat panel --- */
@@ -1490,21 +2163,31 @@
     }
     .reader-chat-header {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 16px;
+      flex-direction: column;
+      padding: 0;
       border-bottom: 1px solid rgba(232,228,220,0.04);
       flex-shrink: 0;
       min-width: 370px;
     }
-    .reader-chat-header span {
+    .reader-chat-header-row1 {
+      display: flex;
+      justify-content: center;
+      padding: 10px 16px 6px;
+    }
+    .reader-chat-header-row2 {
+      display: flex;
+      align-items: center;
+      padding: 4px 16px 10px;
+      gap: 8px;
+    }
+    .reader-chat-header span:not([id*="model-name"]) {
       font-size: 0.65rem;
       font-weight: 600;
       color: rgba(232,228,220,0.45);
       letter-spacing: 0.04em;
       white-space: nowrap;
     }
-    .reader-chat-header button {
+    .reader-chat-header button:not(.model-info-btn):not(.mobile-model-trigger):not(.mobile-model-option):not(.reader-tab-btn):not(#reader-chat-new-btn) {
       background: none;
       border: none;
       color: rgba(232,228,220,0.18);
@@ -1512,8 +2195,8 @@
       padding: 2px;
       transition: color 0.15s;
     }
-    .reader-chat-header button:hover { color: rgba(232,228,220,0.5); }
-    .reader-chat-header button svg { width: 13px; height: 13px; }
+    .reader-chat-header button:not(.model-info-btn):not(.reader-tab-btn):not(#reader-chat-new-btn):hover { color: rgba(232,228,220,0.5); }
+    .reader-chat-header button:not(.reader-tab-btn):not(#reader-chat-new-btn) svg { width: 13px; height: 13px; }
     .reader-chat-header .cd-trigger {
       font-size: 0.95rem;
       color: rgba(232,228,220,0.45);
@@ -1759,6 +2442,184 @@
       color: #c9a84c;
     }
     .reader-chat-input-wrap button svg { width: 14px; height: 14px; }
+    /* --- AI Chat / Notes toggle --- */
+    .reader-tab-toggle {
+      display: inline-flex;
+      align-items: center;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .reader-tab-btn {
+      background: none;
+      border: none;
+      color: rgba(232,228,220,0.28);
+      font-family: var(--sans);
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 9px 20px;
+      cursor: pointer;
+      transition: color 0.2s ease, background 0.2s ease;
+      letter-spacing: 0.03em;
+      white-space: nowrap;
+      -webkit-tap-highlight-color: transparent;
+      min-width: 72px;
+      text-align: center;
+    }
+    .reader-tab-btn.active {
+      background: rgba(201,168,76,0.1);
+      color: rgba(201,168,76,0.95);
+    }
+
+    /* --- Reader notes view (inside chat panel) --- */
+    .reader-notes-view {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .reader-notes-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 16px 8px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(201,168,76,0.1) transparent;
+    }
+    .reader-notes-empty {
+      text-align: center;
+      padding: 32px 0;
+      color: rgba(232,228,220,0.25);
+      font-family: var(--sans);
+      font-size: 0.78rem;
+      line-height: 1.6;
+    }
+    .reader-notes-chapter-label {
+      font-family: var(--sans);
+      font-size: 0.62rem;
+      font-weight: 600;
+      color: rgba(201,168,76,0.4);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 12px 0 6px;
+      margin-bottom: 2px;
+    }
+    .reader-notes-chapter-label:first-child { padding-top: 0; }
+    .note-ai-badge {
+      font-size: 0.55rem;
+      background: rgba(201,168,76,0.1);
+      color: rgba(201,168,76,0.7);
+      padding: 1px 6px;
+      border-radius: 4px;
+      margin-left: 6px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+    }
+    .reader-note-item {
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.025);
+      border: 1px solid rgba(255,255,255,0.04);
+      font-family: var(--sans);
+      font-size: 0.78rem;
+      line-height: 1.55;
+      color: rgba(232,228,220,0.8);
+      position: relative;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .reader-note-item:active {
+      background: rgba(201,168,76,0.06);
+    }
+    .reader-note-item .note-source {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 5px;
+    }
+    .reader-note-item .note-verse-label {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      color: rgba(201,168,76,0.55);
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+    .note-actions {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      display: flex;
+      gap: 2px;
+    }
+    .reader-note-edit,
+    .reader-note-delete {
+      background: none;
+      border: none;
+      color: rgba(232,228,220,0.18);
+      cursor: pointer;
+      padding: 3px 5px;
+      border-radius: 4px;
+      transition: color 0.15s, background 0.15s;
+      display: flex;
+      align-items: center;
+    }
+    .reader-note-edit:active {
+      color: rgba(201,168,76,0.8);
+      background: rgba(201,168,76,0.08);
+    }
+    .reader-note-delete:active {
+      color: rgba(220,80,80,0.8);
+      background: rgba(220,80,80,0.08);
+    }
+    .note-edit-area {
+      width: 100%;
+      min-height: 60px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(201,168,76,0.15);
+      border-radius: 8px;
+      color: rgba(232,228,220,0.85);
+      font-family: var(--sans);
+      font-size: 0.78rem;
+      line-height: 1.55;
+      padding: 8px 10px;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .note-edit-area:focus {
+      border-color: rgba(201,168,76,0.35);
+    }
+    .note-edit-btns {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .note-edit-cancel,
+    .note-edit-save {
+      font-family: var(--sans);
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 5px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+    }
+    .note-edit-cancel {
+      background: rgba(255,255,255,0.04);
+      color: rgba(232,228,220,0.45);
+    }
+    .note-edit-cancel:active { background: rgba(255,255,255,0.08); }
+    .note-edit-save {
+      background: rgba(201,168,76,0.15);
+      color: rgba(201,168,76,0.9);
+    }
+    .note-edit-save:active { background: rgba(201,168,76,0.25); }
+    .reader-note-item.editing { cursor: default; }
+
     .reader-chat-disclaimer {
       padding: 0 16px 10px;
       font-size: 0.68rem;
@@ -2647,6 +3508,7 @@
       background: rgba(232,228,220,0.03);
     }
     .home-chat-back svg { width: 14px; height: 14px; }
+    .home-chat-new { display: none; }
     .home-chat.chatting .home-chat-back { display: inline-flex; }
 
     .home-chat-header-title {
@@ -3120,6 +3982,13 @@
     }
 
     @media (max-width: 800px) {
+      html, body {
+        overflow: hidden !important;
+        height: 100% !important;
+        position: fixed !important;
+        width: 100% !important;
+        overscroll-behavior: none !important;
+      }
       .sphere-section { display: none !important; }
       .mobile-topbar { display: flex !important; }
       .page-wrap {
@@ -3127,6 +3996,7 @@
         height: 100dvh;
         display: flex;
         flex-direction: column;
+        overflow: hidden;
       }
 
       /* Hide desktop-only elements */
@@ -3204,7 +4074,7 @@
 
       /* Input area — fixed bottom, ChatGPT-style */
       .home-chat-input-area {
-        padding: 10px 14px 0;
+        padding: 10px 14px 28px;
         background: rgba(0,0,0,0.9);
         border-top: 1px solid rgba(255,255,255,0.04);
       }
@@ -3237,9 +4107,10 @@
       .stats-info-btn { display: none !important; }
       .home-chat-input-footer,
       .home-chat.chatting .home-chat-input-footer { display: none !important; }
-      .mobile-model-label { display: block !important; }
+      .mobile-model-label { display: flex !important; }
       .reader-model-picker { display: none !important; }
       .reader-chat-header .cd-wrap { display: none !important; }
+      .reader-mobile-model { display: flex !important; align-items: center !important; margin: 0 !important; margin-bottom: 0 !important; }
       .cd-trigger { font-size: 0.85rem !important; }
       .cd-menu { font-size: 0.85rem !important; }
       .cd-item { padding: 10px 14px !important; font-size: 0.85rem !important; }
@@ -3252,7 +4123,7 @@
         height: 100dvh !important;
       }
       .home-chat.chatting .home-chat-welcome { display: none !important; }
-      .home-chat.chatting .home-chat-messages { display: block !important; }
+      .home-chat.chatting .home-chat-messages { display: block !important; flex: 1 !important; overflow-y: auto !important; -webkit-overflow-scrolling: touch; }
       .home-chat.chatting .home-chat-back {
         display: flex !important;
         position: sticky;
@@ -3264,6 +4135,23 @@
         padding: 10px 16px;
         font-size: 0.9rem;
         border-bottom: 1px solid rgba(255,255,255,0.04);
+      }
+      .home-chat.chatting .home-chat-new {
+        display: flex !important;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        margin-left: auto;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.08);
+        color: rgba(232,228,220,0.5);
+        cursor: pointer;
+        padding: 5px 14px;
+        border-radius: 20px;
+        font-family: var(--sans);
+        font-size: 0.7rem;
+        letter-spacing: 0.02em;
+        transition: all 0.15s;
       }
 
       /* Splash — mobile: JS-driven transitions instead of CSS animations */
@@ -3319,9 +4207,67 @@
         position: static !important;
         transform: none !important;
         justify-content: flex-end;
+        display: none !important;
       }
-      .reader-tl-label { font-size: 0.38rem !important; }
-      .reader-tl-toggle button { font-size: 0.38rem !important; padding: 2px 5px !important; }
+      .reader-settings-btn {
+        background: none;
+        border: none;
+        color: rgba(232,228,220,0.5);
+        cursor: pointer;
+        padding: 6px;
+        border-radius: 8px;
+        transition: color 0.15s;
+      }
+      .reader-settings-btn:active { color: rgba(232,228,220,0.8); }
+      .reader-settings-popup {
+        display: none;
+        position: absolute;
+        top: 100%;
+        right: 0;
+        margin-top: 6px;
+        background: rgba(18,18,28,0.97);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        padding: 14px 16px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        z-index: 9999;
+        min-width: 200px;
+        animation: tooltipIn 0.2s ease-out;
+      }
+      .reader-settings-popup.open { display: block; }
+      .reader-settings-popup-label {
+        font-family: var(--sans);
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: rgba(232,228,220,0.4);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+      }
+      .reader-settings-popup-options {
+        display: flex;
+        gap: 0;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .reader-settings-popup-options button {
+        flex: 1;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.06);
+        color: rgba(232,228,220,0.5);
+        font-family: var(--sans);
+        font-size: 0.75rem;
+        padding: 8px 10px;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .reader-settings-popup-options button:first-child { border-radius: 8px 0 0 8px; border-right: none; }
+      .reader-settings-popup-options button:last-child { border-radius: 0 8px 8px 0; }
+      .reader-settings-popup-options button.active {
+        background: rgba(201,168,76,0.12);
+        border-color: rgba(201,168,76,0.25);
+        color: #c9a84c;
+      }
       .reader-topbar-center {
         order: 1;
         align-items: center;
@@ -3341,11 +4287,11 @@
       }
 
       .reader-overlay {
-        overflow: hidden !important;
+        overflow: visible !important;
         background: rgb(6,6,12) !important;
       }
-      .reader-body { flex-direction: column !important; }
-      .reader-content { position: relative !important; right: 0 !important; flex: 1; min-height: 0; overflow-y: auto; }
+      .reader-body { flex-direction: column !important; overflow: hidden !important; }
+      .reader-content { position: relative !important; right: 0 !important; flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
       .reader-inner { padding: 0 16px !important; font-size: 0.82rem !important; transform: none !important; }
       .reader-chapter-heading { font-size: 0.95rem !important; }
       .reader-verse { font-size: 0.82rem !important; line-height: 1.65 !important; }
@@ -3354,19 +4300,22 @@
       .reader-chat {
         width: 100% !important;
         min-width: 0 !important;
-        max-height: 30vh;
+        max-height: 40vh;
         flex-shrink: 0;
         border-left: none !important;
         border-top: 1px solid rgba(201,168,76,0.06);
       }
       .reader-chat-header {
         min-width: 0 !important;
-        padding: 12px 16px !important;
       }
-      .reader-chat-header span { font-size: 0.85rem !important; }
+      .reader-chat-header-row1 { padding: 10px 16px 6px !important; }
+      .reader-chat-header-row2 { padding: 4px 16px 10px !important; }
+      .reader-chat-header span:not([id*="model-name"]) { font-size: 0.85rem !important; }
       .reader-chat-header .cd-trigger { font-size: 0.95rem !important; }
       .reader-chat-settings { min-width: 0 !important; }
-      .reader-chat-empty { font-size: 0.9rem !important; }
+      .reader-chat-empty { font-size: 0.9rem !important; margin-top: 10px !important; }
+      .reader-chat-messages { flex: 0 1 auto !important; overflow-y: hidden !important; }
+      .reader-chat.has-messages .reader-chat-messages { flex: 1 !important; overflow-y: auto !important; }
       .reader-chat-disclaimer,
       .reader-chat-settings-hint,
       .rmp-hint { display: none !important; }
@@ -3417,8 +4366,28 @@
 </head>
 <body>
 
+<!-- Welcome screen (before splash) -->
+<div class="welcome-screen" id="welcome-screen">
+  <svg class="welcome-cross" viewBox="0 0 80 140" fill="none">
+    <defs>
+      <linearGradient id="wc-gold" x1="40" y1="0" x2="40" y2="140" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#f5e08c"/>
+        <stop offset="100%" stop-color="#c9a84c"/>
+      </linearGradient>
+    </defs>
+    <rect x="32" y="0" width="16" height="140" rx="3" fill="url(#wc-gold)"/>
+    <rect x="6" y="32" width="68" height="16" rx="3" fill="url(#wc-gold)"/>
+  </svg>
+  <div class="welcome-title">BibleVerse</div>
+  <p class="welcome-text">BibleVerse was created to increase the accessibility of the Bible and equip the expansion of Christianity with a modern interface.</p>
+  <p class="welcome-text">It is entirely free and asks for nothing in return. If you are motivated to donate, please give to your local church instead.</p>
+  <div class="welcome-footer">Developed by <a href="https://gregorykyro.com" target="_blank" rel="noopener">Gregory W. Kyro, PhD</a></div>
+  <button class="welcome-enter" id="welcome-enter">Enter</button>
+  <div class="welcome-beta">Currently in beta. Actively under development.</div>
+</div>
+
 <!-- Splash intro -->
-<div class="splash" id="splash">
+<div class="splash" id="splash" style="display:none;">
   <div class="splash-glow"></div>
   <svg class="splash-cross" viewBox="0 0 80 140" fill="none">
     <defs>
@@ -3437,57 +4406,149 @@
 </div>
 <script>
 (function(){
-  var s=document.getElementById('splash'),pc=document.getElementById('splash-particles');
-  for(var i=0;i<28;i++){
-    var el=document.createElement('div');
-    el.className='splash-particle';
-    var sz=1.5+Math.random()*2;
-    el.style.width=sz+'px';el.style.height=sz+'px';
-    var a=Math.random()*Math.PI*2,r=18+Math.random()*40;
-    el.style.setProperty('--sx',Math.cos(a)*r+'px');
-    el.style.setProperty('--sy',Math.sin(a)*r+'px');
-    var ea=a+(Math.random()-0.5)*0.9,er=70+Math.random()*90;
-    el.style.setProperty('--ex',Math.cos(ea)*er+'px');
-    el.style.setProperty('--ey',(Math.sin(ea)*er-50)+'px');
-    el.style.setProperty('--d',(2.2+Math.random()*2)+'s');
-    el.style.setProperty('--t',(1.6+Math.random()*1.6)+'s');
-    pc.appendChild(el);
+  var ws = document.getElementById('welcome-screen');
+  var s = document.getElementById('splash');
+  var enterBtn = document.getElementById('welcome-enter');
+
+  function startSplash() {
+    s.style.display = '';
+    var pc = document.getElementById('splash-particles');
+    for (var i = 0; i < 28; i++) {
+      var el = document.createElement('div');
+      el.className = 'splash-particle';
+      var sz = 1.5 + Math.random() * 2;
+      el.style.width = sz + 'px'; el.style.height = sz + 'px';
+      var a = Math.random() * Math.PI * 2, r = 18 + Math.random() * 40;
+      el.style.setProperty('--sx', Math.cos(a) * r + 'px');
+      el.style.setProperty('--sy', Math.sin(a) * r + 'px');
+      var ea = a + (Math.random() - 0.5) * 0.9, er = 70 + Math.random() * 90;
+      el.style.setProperty('--ex', Math.cos(ea) * er + 'px');
+      el.style.setProperty('--ey', (Math.sin(ea) * er - 50) + 'px');
+      el.style.setProperty('--d', (2.2 + Math.random() * 2) + 's');
+      el.style.setProperty('--t', (1.6 + Math.random() * 1.6) + 's');
+      pc.appendChild(el);
+    }
+    function dismiss() {
+      if (s.classList.contains('out')) return;
+      s.classList.add('out');
+      setTimeout(function(){
+        s.remove();
+        document.dispatchEvent(new Event('splashDone'));
+      }, window.innerWidth <= 800 ? 2200 : 1600);
+    }
+    var isMob = window.innerWidth <= 800;
+    if (isMob) {
+      var splT = s.querySelector('.splash-title');
+      var splSub = s.querySelector('.splash-subtitle');
+      setTimeout(function(){ if (splT) splT.classList.add('spl-visible'); }, 800);
+      setTimeout(function(){ if (splSub) splSub.classList.add('spl-visible'); }, 1300);
+    }
+    setTimeout(dismiss, isMob ? 4600 : 3800);
+    s.addEventListener('click', dismiss);
   }
-  function dismiss(){
-    if(s.classList.contains('out'))return;
-    s.classList.add('out');
-    setTimeout(function(){s.remove()}, window.innerWidth <= 800 ? 2200 : 1600);
+
+  if (ws && enterBtn && !localStorage.getItem('bv_welcome_seen')) {
+    enterBtn.addEventListener('click', function() {
+      localStorage.setItem('bv_welcome_seen', '1');
+      startSplash();
+      ws.style.transition = 'opacity 0.5s ease';
+      ws.style.opacity = '0';
+      setTimeout(function() { ws.remove(); }, 500);
+    });
+  } else {
+    if (ws) ws.remove();
+    startSplash();
   }
-  var isMob = window.innerWidth <= 800;
-  if (isMob) {
-    var splT = s.querySelector('.splash-title');
-    var splSub = s.querySelector('.splash-subtitle');
-    setTimeout(function(){ if(splT) splT.classList.add('spl-visible'); }, 800);
-    setTimeout(function(){ if(splSub) splSub.classList.add('spl-visible'); }, 1300);
-  }
-  setTimeout(dismiss, isMob ? 4600 : 3800);
-  s.addEventListener('click',dismiss);
 })();
 </script>
 
-<!-- Mobile notice -->
-<div class="mobile-notice-overlay" id="mobile-notice">
-  <div class="mobile-notice">
-    <h2>Welcome to BibleVerse</h2>
-    <p>The desktop version includes additional features like the interactive 3D cross-reference visualization. Everything else works great here.</p>
-    <button class="mobile-notice-btn" id="mobile-notice-dismiss">Get started</button>
+<!-- Mobile onboarding tooltips -->
+<div id="mobile-onboard-overlay" style="display:none;position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,0.55);"></div>
+
+<div id="mobile-tooltip-1" class="mobile-tooltip" style="display:none;">
+  <div class="mobile-tooltip-arrow mobile-tooltip-arrow-top arrow-left"></div>
+  <div class="mobile-tooltip-body">
+    <p>Browse your past conversations.</p>
+    <button class="mobile-tooltip-btn" id="mt-next-1">Next</button>
   </div>
 </div>
+
+<div id="mobile-tooltip-2" class="mobile-tooltip" style="display:none;">
+  <div class="mobile-tooltip-arrow mobile-tooltip-arrow-top arrow-right"></div>
+  <div class="mobile-tooltip-body">
+    <p>Read any book of the Bible with AI.</p>
+    <button class="mobile-tooltip-btn" id="mt-next-2">Next</button>
+  </div>
+</div>
+
+<div id="mobile-tooltip-3" class="mobile-tooltip" style="display:none;">
+  <div class="mobile-tooltip-arrow mobile-tooltip-arrow-bottom"></div>
+  <div class="mobile-tooltip-body">
+    <p style="margin-bottom:8px;"><strong style="color:rgba(232,228,220,0.85);font-size:0.9rem;">Select AI Model</strong></p>
+    <p style="margin-bottom:6px;"><strong style="color:rgba(201,168,76,0.8);">Standard</strong> — Your AI companion to learn about the Bible.</p>
+    <p><strong style="color:rgba(201,168,76,0.8);">Genius Mode</strong> — Intense, high-IQ debate opponent. <em>Good luck.</em></p>
+    <button class="mobile-tooltip-btn" id="mt-next-3">Got it</button>
+  </div>
+</div>
+
 <script>
-(function(){
-  if (window.innerWidth <= 800) {
-    var overlay = document.getElementById('mobile-notice');
-    setTimeout(function(){ overlay.style.display = 'flex'; }, 4200);
-    document.getElementById('mobile-notice-dismiss').addEventListener('click', function(){
-      overlay.style.display = 'none';
+document.addEventListener('splashDone', function(){
+  if (window.innerWidth > 800) return;
+  if (localStorage.getItem('bv_onboard_done')) return;
+  var overlay = document.getElementById('mobile-onboard-overlay');
+  var t1 = document.getElementById('mobile-tooltip-1');
+  var t2 = document.getElementById('mobile-tooltip-2');
+  var t3 = document.getElementById('mobile-tooltip-3');
+
+  function elevate(el) { if(el){el.style.position='relative';el.style.zIndex='99999';} }
+  function reset(el) { if(el){el.style.position='';el.style.zIndex='';} }
+
+  setTimeout(function(){
+    var historyBtn = document.getElementById('mobile-chat-history');
+    overlay.style.display = 'block';
+    if (historyBtn) {
+      var r = historyBtn.getBoundingClientRect();
+      elevate(historyBtn);
+      t1.style.top = (r.bottom + 10) + 'px';
+      t1.style.left = r.left + 'px';
+    }
+    t1.style.display = 'block';
+
+    document.getElementById('mt-next-1').addEventListener('click', function(){
+      t1.style.display = 'none';
+      reset(historyBtn);
+      var bookBtn = document.getElementById('mobile-open-reader');
+      if (bookBtn) {
+        var r = bookBtn.getBoundingClientRect();
+        elevate(bookBtn);
+        t2.style.top = (r.bottom + 10) + 'px';
+        t2.style.right = (window.innerWidth - r.right) + 'px';
+        t2.style.left = 'auto';
+      }
+      t2.style.display = 'block';
+
+      document.getElementById('mt-next-2').addEventListener('click', function(){
+        t2.style.display = 'none';
+        reset(bookBtn);
+        var modelLabel = document.getElementById('mobile-model-label');
+        if (modelLabel) {
+          var r = modelLabel.getBoundingClientRect();
+          elevate(modelLabel);
+          t3.style.bottom = (window.innerHeight - r.top + 12) + 'px';
+          t3.style.left = r.left + 'px';
+        }
+        t3.style.display = 'block';
+
+        document.getElementById('mt-next-3').addEventListener('click', function(){
+          t3.style.display = 'none';
+          overlay.style.display = 'none';
+          reset(modelLabel);
+          localStorage.setItem('bv_onboard_done', '1');
+        });
+      });
     });
-  }
-})();
+  }, 500);
+});
 </script>
 
 <div class="page-wrap">
@@ -3513,14 +4574,26 @@
 
 <!-- Mobile top bar (hidden on desktop) -->
 <div class="mobile-topbar" id="mobile-topbar">
+  <button class="mobile-topbar-icon" id="mobile-chat-history" title="Chat history">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+  </button>
+  <span class="mobile-topbar-title" id="mobile-topbar-title" style="cursor:pointer;-webkit-tap-highlight-color:transparent;">BibleVerse <span style="opacity:0.45;font-weight:400;font-size:0.8em;">(Beta)</span></span>
   <button class="mobile-topbar-book" id="mobile-open-reader" aria-label="Read Bible">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="22" height="22">
       <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
       <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
     </svg>
   </button>
-  <span class="mobile-topbar-title">BibleVerse <span style="opacity:0.45;font-weight:400;font-size:0.8em;">(Beta)</span></span>
-  <div class="mobile-topbar-spacer"></div>
+</div>
+
+<div class="mobile-history-overlay" id="mobile-history-overlay"></div>
+<!-- Chat history panel -->
+<div class="mobile-history-panel" id="mobile-history-panel">
+  <div class="mobile-history-header">
+    <span>Chat History</span>
+    <button id="mobile-history-close">&times;</button>
+  </div>
+  <div class="mobile-history-list" id="mobile-history-list"></div>
 </div>
 
 <!-- Homepage AI Chat -->
@@ -3529,6 +4602,7 @@
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12L6 8l4-4"/></svg>
     Back
   </button>
+  <button class="home-chat-new" id="home-chat-new" title="New chat">New Chat</button>
   <div class="home-chat-header-title">BibleVerse Chat</div>
   <div class="home-chat-inner">
     <div class="home-chat-welcome" id="home-chat-welcome">
@@ -3618,7 +4692,17 @@
         </div>
         <button class="stats-info-btn" id="chat-info-btn" title="About chat">i</button>
       </div>
-      <div class="mobile-model-label" id="mobile-model-label">Logos</div>
+      <div class="mobile-model-label" id="mobile-model-label" style="display:none;align-items:center;">
+        <button class="mobile-model-trigger" id="mobile-model-trigger">
+          <span id="mobile-model-name">Logos (Standard)</span>
+          <svg viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+        </button>
+        <div class="mobile-model-menu" id="mobile-model-menu">
+          <button class="mobile-model-option active" data-model="standard">Logos (Standard)</button>
+          <button class="mobile-model-option" data-model="genius">Logos (Genius Mode)</button>
+        </div>
+        <button class="model-info-btn" id="home-model-info-btn">i</button>
+      </div>
       <div class="home-chat-input-wrap">
         <input type="text" id="home-chat-input" placeholder="Enter any text..." autocomplete="off" spellcheck="false">
         <button id="home-chat-send" class="home-chat-send" aria-label="Send">
@@ -3970,7 +5054,6 @@ document.getElementById('chat-methodology-overlay').addEventListener('click', fu
             </linearGradient></defs>
           </svg>
           <div class="rt-label">Holy Bible</div>
-          <div class="rt-label-sub">King James Version</div>
           <div class="rt-line"></div>
         </div>
       </div>
@@ -3983,7 +5066,6 @@ document.getElementById('chat-methodology-overlay').addEventListener('click', fu
               <rect x="4" y="9" width="20" height="4" rx="1" fill="url(#rt-gold)"/>
             </svg>
             <div class="rt-label">Holy Bible</div>
-            <div class="rt-label-sub">King James Version</div>
             <div class="rt-line"></div>
           </div>
         </div>
@@ -3996,6 +5078,18 @@ document.getElementById('chat-methodology-overlay').addEventListener('click', fu
   <div class="reader-topbar">
     <div class="reader-topbar-left">
       <button class="reader-close" id="reader-close">&#x2715;</button>
+      <div style="position:relative;">
+        <button class="reader-settings-btn" id="reader-settings-toggle" title="Settings" style="display:none;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+        <div class="reader-settings-popup" id="reader-settings-popup">
+          <div class="reader-settings-popup-label">Translation</div>
+          <div class="reader-settings-popup-options">
+            <button id="reader-popup-kjv" class="active">Classic (1769)</button>
+            <button id="reader-popup-bsb">Modern (2020)</button>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="reader-topbar-center">
       <div class="reader-topbar-title">
@@ -4032,28 +5126,63 @@ document.getElementById('chat-methodology-overlay').addEventListener('click', fu
       </div>
     </div>
   </div>
+  <!-- Verse action popover -->
+  <div id="verse-action-popover" class="verse-popover">
+    <div class="vp-colors">
+      <div class="vp-color" data-color="green" title="Green"></div>
+      <div class="vp-color" data-color="blue" title="Blue"></div>
+      <div class="vp-color" data-color="red" title="Red"></div>
+      <div class="vp-color vp-clear" data-color="clear" title="Remove">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>
+      </div>
+    </div>
+    <div class="vp-divider"></div>
+    <button class="vp-note-btn" id="vp-note-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Note
+    </button>
+  </div>
   <div class="reader-body">
     <div class="reader-content" id="reader-content">
       <div class="reader-inner" id="reader-inner"></div>
     </div>
     <div class="reader-sel-tooltip" id="reader-sel-tooltip">
-      <button id="reader-sel-ask">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        Ask AI
-      </button>
+      <div class="reader-sel-tooltip-inner">
+        <button id="reader-sel-ask">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Ask AI
+        </button>
+      </div>
     </div>
     <div class="reader-chat" id="reader-chat">
       <div class="reader-chat-header" id="reader-chat-header" style="display:none;">
-        <div class="cd-wrap" id="cd-model">
-          <button class="cd-trigger" id="cd-model-trigger">
-            <span>Logos Standard</span>
-            <svg class="cd-chev" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
-          </button>
-          <div class="cd-menu" id="cd-model-menu"></div>
+        <div class="reader-chat-header-row1">
+          <div class="reader-tab-toggle" id="reader-tab-toggle">
+            <button class="reader-tab-btn active" data-tab="ai">AI Chat</button>
+            <button class="reader-tab-btn" data-tab="notes">Notes</button>
+          </div>
         </div>
-        <button id="reader-chat-settings-btn" title="Settings">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        </button>
+        <div class="reader-chat-header-row2" id="reader-chat-header-row2">
+          <div class="cd-wrap" id="cd-model">
+            <button class="cd-trigger" id="cd-model-trigger">
+              <span>Logos Standard</span>
+              <svg class="cd-chev" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+            </button>
+            <div class="cd-menu" id="cd-model-menu"></div>
+          </div>
+          <div class="mobile-model-label reader-mobile-model" id="reader-mobile-model-label" style="display:none;align-items:center;">
+            <button class="mobile-model-trigger" id="reader-mobile-model-trigger">
+              <span id="reader-mobile-model-name">Logos (Standard)</span>
+              <svg viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+            </button>
+            <div class="mobile-model-menu" id="reader-mobile-model-menu">
+              <button class="mobile-model-option active" data-model="standard">Logos (Standard)</button>
+              <button class="mobile-model-option" data-model="genius">Logos (Genius Mode)</button>
+            </div>
+          </div>
+          <button class="model-info-btn" id="reader-model-info-btn">i</button>
+          <button id="reader-chat-new-btn" title="New chat" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);color:rgba(232,228,220,0.4);cursor:pointer;padding:6px 14px;border-radius:8px;font-family:var(--sans);font-size:0.68rem;font-weight:500;letter-spacing:0.02em;transition:all 0.15s;white-space:nowrap;margin-left:auto;">New Chat</button>
+        </div>
       </div>
       <div class="reader-chat-model-loading" id="reader-chat-model-loading">
         <div class="rcml-inner">
@@ -4101,6 +5230,38 @@ document.getElementById('chat-methodology-overlay').addEventListener('click', fu
         </button>
       </div>
       <div class="reader-chat-disclaimer" id="reader-chat-disclaimer" style="display:none;">AI runs locally in your browser. Your messages stay on your device.</div>
+      <!-- Notes view (toggled with AI) -->
+      <div class="reader-notes-view" id="reader-notes-view" style="display:none;">
+        <div class="reader-notes-list" id="reader-notes-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Reader onboarding tooltip -->
+<div id="reader-onboard-overlay" style="display:none;position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,0.5);"></div>
+<div id="reader-tooltip-hl" class="mobile-tooltip" style="display:none;">
+  <div class="mobile-tooltip-arrow mobile-tooltip-arrow-top arrow-left"></div>
+  <div class="mobile-tooltip-body">
+    <p style="margin-bottom:6px;"><strong style="color:rgba(232,228,220,0.85);font-size:0.88rem;">Interact with verses</strong></p>
+    <p style="margin-bottom:8px;">Tap any superscript number (e.g. <span style="display:inline-block;font-family:var(--mono);font-size:0.6rem;color:rgba(201,168,76,0.5);vertical-align:super;padding:2px 4px;border-radius:3px;background:rgba(201,168,76,0.06);">1</span>) to highlight a verse or attach a note.</p>
+    <button class="mobile-tooltip-btn" id="reader-mt-next-hl">Got it</button>
+  </div>
+</div>
+
+<!-- Note creation modal -->
+<div class="note-modal-overlay" id="note-modal-overlay">
+  <div class="note-modal">
+    <h3>Add Note</h3>
+    <div class="note-modal-row">
+      <select class="note-modal-select" id="note-modal-book"></select>
+      <select class="note-modal-select" id="note-modal-chapter" style="max-width:100px;"></select>
+      <select class="note-modal-select" id="note-modal-verse" style="max-width:100px;"></select>
+    </div>
+    <textarea id="note-modal-text" placeholder="Write your note..."></textarea>
+    <div class="note-modal-actions">
+      <button class="note-modal-cancel" id="note-modal-cancel">Cancel</button>
+      <button class="note-modal-save" id="note-modal-save">Save Note</button>
     </div>
   </div>
 </div>
@@ -4282,7 +5443,33 @@ document.getElementById('chat-methodology-overlay').addEventListener('click', fu
 })();
 </script>
 
+<!-- Model info popup (shared) -->
+<div class="model-info-popup-overlay" id="model-info-overlay"></div>
+<div class="model-info-popup" id="model-info-popup">
+  <div class="model-info-popup-title">About Logos AI</div>
+  <div class="model-info-popup-body">
+    Both models &mdash; <strong>Logos (Standard)</strong> and <strong>Logos (Genius Mode)</strong> &mdash; are powered by GPT-oss 120B, a 120-billion parameter open-source language model. All inference is routed through a private server. No data is stored or logged.
+    <span class="model-info-sep"></span>
+    <strong>Standard</strong> &mdash; Conversational Bible companion.<br>
+    <strong>Genius Mode</strong> &mdash; Adversarial debate opponent.
+  </div>
+</div>
+<script>
+(function(){
+  var overlay = document.getElementById('model-info-overlay');
+  var popup = document.getElementById('model-info-popup');
+  function openInfo() { overlay.classList.add('open'); popup.classList.add('open'); }
+  function closeInfo() { overlay.classList.remove('open'); popup.classList.remove('open'); }
+  var b1 = document.getElementById('home-model-info-btn');
+  var b2 = document.getElementById('reader-model-info-btn');
+  if (b1) b1.addEventListener('click', function(e){ e.stopPropagation(); openInfo(); });
+  if (b2) b2.addEventListener('click', function(e){ e.stopPropagation(); openInfo(); });
+  overlay.addEventListener('click', closeInfo);
+  popup.addEventListener('click', function(e){ e.stopPropagation(); });
+})();
+</script>
+
 <script src="js/common.js"></script>
-<script src="js/hero.js?v=20260228r"></script>
+<script src="js/hero.js?v=20260302y"></script>
 </body>
 </html>

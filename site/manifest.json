@@ -1,0 +1,16 @@
+{
+  "name": "BibleVerse",
+  "short_name": "BibleVerse",
+  "description": "Interactive Bible exploration with AI",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#06060c",
+  "theme_color": "#06060c",
+  "icons": [
+    {
+      "src": "apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}

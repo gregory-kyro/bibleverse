@@ -59,7 +59,7 @@
     return bookScale[bookScale.length - 1][1];
   }
 
-  const bookNames = {}, bookTestament = {};
+  const bookNames = {}, bookTestament = {}, chapterCounts = {};
   for (const p of pts) {
     if (!bookNames[p.book_num]) { bookNames[p.book_num] = p.book; bookTestament[p.book_num] = p.testament; }
   }
@@ -967,6 +967,7 @@
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     const chapters = [...(bookChapters[readerBookNum] || [])].sort((a, b) => a - b);
     updateNavButtons(chapters);
+    if (typeof loadReaderChatHistory === 'function') loadReaderChatHistory();
   });
 
   function parseChapterVerse(ref, bookName) {
@@ -976,11 +977,16 @@
   }
 
   const bookVerseIndex = {};
+  const verseCounts = {};
   for (let i = 0; i < pts.length; i++) {
     const p = pts[i];
     if (!bookVerseIndex[p.book_num]) bookVerseIndex[p.book_num] = [];
     const cv = parseChapterVerse(p.ref, p.book);
     bookVerseIndex[p.book_num].push({ idx: i, chapter: cv.chapter, verse: cv.verse, ref: p.ref });
+    const bn = p.book_num;
+    if (!chapterCounts[bn] || cv.chapter > chapterCounts[bn]) chapterCounts[bn] = cv.chapter;
+    const vcKey = bn + '_' + cv.chapter;
+    if (!verseCounts[vcKey] || cv.verse > verseCounts[vcKey]) verseCounts[vcKey] = cv.verse;
   }
 
   async function renderBook(bookNum, scrollToRef) {
@@ -1090,7 +1096,6 @@
     setTimeout(() => {
       renderBook(bookNum, scrollRef);
       readerOverlay.classList.add('open');
-      // Trigger fade-in on next frame so CSS transition fires
       requestAnimationFrame(() => {
         readerOverlay.classList.add('visible');
       });
@@ -1105,7 +1110,34 @@
     setTimeout(() => {
       readerTransition.classList.remove('active', 'phase-1', 'phase-2');
       readerTransitionActive = false;
+      showReaderOnboarding();
     }, 3300);
+  }
+
+  function showReaderOnboarding() {
+    if (localStorage.getItem('bv_reader_onboard_done2')) return;
+    var overlay = document.getElementById('reader-onboard-overlay');
+    var tHl = document.getElementById('reader-tooltip-hl');
+    if (!tHl) return;
+
+    var firstNum = readerContent.querySelector('.reader-verse-num');
+    if (!firstNum) return;
+
+    overlay.style.display = 'block';
+    firstNum.style.position = 'relative';
+    firstNum.style.zIndex = '99999';
+    var r1 = firstNum.getBoundingClientRect();
+    tHl.style.top = (r1.bottom + 10) + 'px';
+    tHl.style.left = '16px';
+    tHl.style.display = 'block';
+
+    document.getElementById('reader-mt-next-hl').addEventListener('click', function() {
+      tHl.style.display = 'none';
+      overlay.style.display = 'none';
+      firstNum.style.position = '';
+      firstNum.style.zIndex = '';
+      localStorage.setItem('bv_reader_onboard_done2', '1');
+    });
   }
 
   function syncReaderPickerState() {
@@ -1122,7 +1154,40 @@
 
   document.getElementById('reader-close').addEventListener('click', () => {
     readerOverlay.classList.remove('open', 'visible');
+    hideVersePopover();
   });
+
+  // Mobile: show settings gear, toggle popup
+  var readerSettingsToggle = document.getElementById('reader-settings-toggle');
+  var readerSettingsPopup = document.getElementById('reader-settings-popup');
+  if (isMobileDevice && readerSettingsToggle && readerSettingsPopup) {
+    readerSettingsToggle.style.display = '';
+    readerSettingsToggle.addEventListener('click', function(e) {
+      e.stopPropagation();
+      readerSettingsPopup.classList.toggle('open');
+    });
+    document.addEventListener('click', function() {
+      readerSettingsPopup.classList.remove('open');
+    });
+    readerSettingsPopup.addEventListener('click', function(e) { e.stopPropagation(); });
+
+    var popupKjv = document.getElementById('reader-popup-kjv');
+    var popupBsb = document.getElementById('reader-popup-bsb');
+    var origKjv = document.getElementById('reader-kjv');
+    var origBsb = document.getElementById('reader-bsb');
+    if (popupKjv && popupBsb && origKjv && origBsb) {
+      popupKjv.addEventListener('click', function() {
+        origKjv.click();
+        popupKjv.classList.add('active');
+        popupBsb.classList.remove('active');
+      });
+      popupBsb.addEventListener('click', function() {
+        origBsb.click();
+        popupBsb.classList.add('active');
+        popupKjv.classList.remove('active');
+      });
+    }
+  }
 
   document.getElementById('reader-prev').addEventListener('click', () => {
     const chapters = [...(bookChapters[readerBookNum] || [])].sort((a, b) => a - b);
@@ -1194,19 +1259,30 @@
   const chatInput = document.getElementById('reader-chat-input');
   const chatSendBtn = document.getElementById('reader-chat-send');
   const chatSettingsPanel = document.getElementById('reader-chat-settings');
-  const chatSettingsBtn = document.getElementById('reader-chat-settings-btn');
+  const chatSettingsBtn = document.getElementById('reader-chat-settings-btn'); // may be null
   const chatApiKeyInput = document.getElementById('reader-chat-api-key');
   const chatKeySaveBtn = document.getElementById('reader-chat-key-save');
   let chatHistory = [];
   let chatStreaming = false;
+
+  function getReaderChatKey() {
+    return 'bv_reader_chat_' + readerBookNum + '_' + (readerChapterSelect ? readerChapterSelect.value : '1');
+  }
+  function saveReaderChatHistory() {
+    try { localStorage.setItem(getReaderChatKey(), JSON.stringify(chatHistory)); } catch(e) {}
+  }
+  function loadReaderChatHistory() {
+    chatHistory = JSON.parse(localStorage.getItem(getReaderChatKey()) || '[]');
+    renderChat();
+  }
   let llmEngine = null;
   let llmCurrentModel = null;
 
   const LLM_MODELS = [
     {
-      key: 'standard', id: 'gemma-2-2b-it-q4f16_1-MLC', label: 'Logos Standard', menu: 'Standard', vram: '2.0 GB',
-      sysPrompt: 'You are a Bible assistant. Be conversational. Use as few words as possible while still answering sufficiently. Your language style should reflect a fusion of Dostoevsky and Nietzsche. Be blunt and concise. Be incredibly high IQ. Cite relevant verses when they strengthen your answer.',
-      sysReaderPrompt: 'You are a Bible assistant. The user is reading {book}, Chapter {ch}. Answer from the text below.\n\nBe conversational. Use as few words as possible while still answering sufficiently. Your language style should reflect a fusion of Dostoevsky and Nietzsche. Be blunt and concise. Be incredibly high IQ. Cite verse numbers when they strengthen your answer.\n\n{text}',
+      key: 'standard', id: 'gemma-2-2b-it-q4f16_1-MLC', label: 'Logos (Standard)', menu: 'Standard', vram: '2.0 GB',
+      sysPrompt: 'You are a Bible companion. Be conversational and super concise. Use as few words as possible while still answering sufficiently. Help the user understand. Cite relevant verses when they strengthen your answer.',
+      sysReaderPrompt: 'You are a Bible companion. The user is reading {book}, Chapter {ch}. Answer from the text below.\n\nBe conversational and super concise. Use as few words as possible while still answering sufficiently. Help the user understand. Cite verse numbers when they strengthen your answer.\n\n{text}',
       contextLimit: 3000,
     },
     {
@@ -1216,9 +1292,9 @@
       contextLimit: 3000,
     },
     {
-      key: 'genius', id: 'Phi-3.5-mini-instruct-q4f16_1-MLC', label: 'Max (Genius Mode)', menu: 'Genius Mode', vram: '3.7 GB',
-      sysPrompt: 'You are a Bible assistant. Be conversational, but as blunt and concise as possible. Say as few words as possible while answering sufficiently. Your language style should reflect a fusion of Dostoevsky and Nietzsche. Be as concise as possible.',
-      sysReaderPrompt: 'You are a Bible assistant. The user is reading {book}, Chapter {ch}. Be conversational, but as blunt and concise as possible. Say as few words as possible while answering sufficiently. Your language style should reflect a fusion of Dostoevsky and Nietzsche. Cite verse numbers.\n\n{text}',
+      key: 'genius', id: 'Phi-3.5-mini-instruct-q4f16_1-MLC', label: 'Logos (Genius Mode)', menu: 'Genius Mode', vram: '3.7 GB',
+      sysPrompt: 'You are a relentless Bible debate opponent. Channel Dostoevsky and Nietzsche. Be confrontational, blunt, and devastatingly concise. Challenge every assumption. Win every debate with intellectual honesty, not rhetoric. Be incredibly high IQ. Use as few words as possible. Cite verses only as weapons. Never comfort. Never concede unless logically forced. Your default position is in fierce support of Christianity. Never compromise your position.',
+      sysReaderPrompt: 'You are a relentless Bible debate opponent. The user is reading {book}, Chapter {ch}. Answer from the text below.\n\nChannel Dostoevsky and Nietzsche. Be confrontational, blunt, and devastatingly concise. Challenge every assumption. Be incredibly high IQ. Use as few words as possible. Cite verse numbers only as weapons. Never comfort. Never concede unless logically forced. Your default position is in fierce support of Christianity. Never compromise your position.\n\n{text}',
       contextLimit: 3000,
     },
   ];
@@ -1246,7 +1322,69 @@
     chatModelSelect.value = LLM_MODELS[0].key;
   }
 
-  function getSelectedModel() { return chatModelSelect.value; }
+  let mobileSelectedModel = 'standard';
+  const mobileModelLabel = document.getElementById('mobile-model-label');
+  const mobileModelTrigger = document.getElementById('mobile-model-trigger');
+  const mobileModelMenu = document.getElementById('mobile-model-menu');
+  const mobileModelName = document.getElementById('mobile-model-name');
+  if (mobileModelTrigger) {
+    mobileModelTrigger.addEventListener('click', function(e) {
+      e.stopPropagation();
+      mobileModelLabel.classList.toggle('open');
+    });
+    mobileModelMenu.querySelectorAll('.mobile-model-option').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        mobileModelMenu.querySelector('.active')?.classList.remove('active');
+        btn.classList.add('active');
+        mobileSelectedModel = btn.dataset.model;
+        mobileModelName.textContent = btn.textContent;
+        mobileModelLabel.classList.remove('open');
+        if (readerMobileMenu) {
+          readerMobileMenu.querySelector('.active')?.classList.remove('active');
+          var match = readerMobileMenu.querySelector('[data-model="' + btn.dataset.model + '"]');
+          if (match) match.classList.add('active');
+          if (readerMobileName) readerMobileName.textContent = btn.textContent;
+        }
+      });
+    });
+    document.addEventListener('click', function() {
+      mobileModelLabel.classList.remove('open');
+    });
+  }
+
+  var readerMobileLabel = document.getElementById('reader-mobile-model-label');
+  var readerMobileTrigger = document.getElementById('reader-mobile-model-trigger');
+  var readerMobileMenu = document.getElementById('reader-mobile-model-menu');
+  var readerMobileName = document.getElementById('reader-mobile-model-name');
+  if (readerMobileTrigger) {
+    readerMobileTrigger.addEventListener('click', function(e) {
+      e.stopPropagation();
+      readerMobileLabel.classList.toggle('open');
+    });
+    readerMobileMenu.querySelectorAll('.mobile-model-option').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        readerMobileMenu.querySelector('.active')?.classList.remove('active');
+        btn.classList.add('active');
+        mobileSelectedModel = btn.dataset.model;
+        readerMobileName.textContent = btn.textContent;
+        readerMobileLabel.classList.remove('open');
+        if (mobileModelMenu) {
+          mobileModelMenu.querySelector('.active')?.classList.remove('active');
+          var match = mobileModelMenu.querySelector('[data-model="' + btn.dataset.model + '"]');
+          if (match) match.classList.add('active');
+          if (mobileModelName) mobileModelName.textContent = btn.textContent;
+        }
+      });
+    });
+    document.addEventListener('click', function() {
+      readerMobileLabel.classList.remove('open');
+    });
+  }
+
+  function getSelectedModel() {
+    if (isMobileDevice) return mobileSelectedModel;
+    return chatModelSelect.value;
+  }
 
   let readerModelChosen = false;
   const readerModelPicker = document.getElementById('reader-model-picker');
@@ -1260,6 +1398,7 @@
     chatMsgContainer.style.display = '';
     readerChatInputWrap.style.display = '';
     readerChatDisclaimer.style.display = '';
+    loadReaderChatHistory();
   }
 
   document.querySelectorAll('.rmp-card').forEach(card => {
@@ -1301,9 +1440,11 @@
   const savedKey = localStorage.getItem('bv_openai_key');
   if (savedKey) chatApiKeyInput.value = savedKey;
 
-  chatSettingsBtn.addEventListener('click', () => {
-    chatSettingsPanel.style.display = chatSettingsPanel.style.display === 'none' ? '' : 'none';
-  });
+  if (chatSettingsBtn) {
+    chatSettingsBtn.addEventListener('click', () => {
+      chatSettingsPanel.style.display = chatSettingsPanel.style.display === 'none' ? '' : 'none';
+    });
+  }
 
   chatKeySaveBtn.addEventListener('click', () => {
     const k = chatApiKeyInput.value.trim();
@@ -1345,19 +1486,41 @@
     return s;
   }
 
+  const readerChatEl = document.getElementById('reader-chat');
   function renderChat() {
     if (chatHistory.length === 0) {
       chatMsgContainer.innerHTML = '<div class="reader-chat-empty">Ask anything about the text you\'re reading.</div>';
+      if (readerChatEl) readerChatEl.classList.remove('has-messages');
       return;
     }
-    chatMsgContainer.innerHTML = chatHistory.map(m => {
-      const cls = m.role === 'user' ? 'chat-msg-user' : 'chat-msg-assistant';
-      const label = m.role === 'user' ? 'You' : 'BibleVerse';
+    if (readerChatEl) readerChatEl.classList.add('has-messages');
+    chatMsgContainer.innerHTML = chatHistory.map(function(m, idx) {
+      var cls = m.role === 'user' ? 'chat-msg-user' : 'chat-msg-assistant';
+      var label = m.role === 'user' ? 'You' : 'BibleVerse';
+      var saveBtn = '';
+      if (m.role === 'assistant') {
+        saveBtn = '<button class="chat-msg-save-note" data-msg-idx="' + idx + '">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>' +
+          'Save as Note</button>';
+      }
       return '<div class="chat-msg ' + cls + '">' +
         '<div class="chat-msg-label">' + label + '</div>' +
-        '<div class="chat-bubble">' + formatChat(m.content) + '</div></div>';
+        '<div class="chat-bubble">' + formatChat(m.content) + '</div>' + saveBtn + '</div>';
     }).join('');
     chatMsgContainer.scrollTop = chatMsgContainer.scrollHeight;
+    bindSaveNoteButtons();
+  }
+
+  function bindSaveNoteButtons() {
+    chatMsgContainer.querySelectorAll('.chat-msg-save-note').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var idx = parseInt(btn.dataset.msgIdx);
+        var msg = chatHistory[idx];
+        if (!msg) return;
+        var preview = msg.content.length > 300 ? msg.content.slice(0, 300) + '…' : msg.content;
+        openNoteModal(preview);
+      });
+    });
   }
 
   function updateLastBubble() {
@@ -1487,51 +1650,593 @@
       }
       renderChat();
     }
+    saveReaderChatHistory();
     chatStreaming = false;
   }
 
-  // --- Highlight-to-chat tooltip ---
+  // --- Selection tooltip ---
   const selTooltip = document.getElementById('reader-sel-tooltip');
   let selText = '';
+  var savedRange = null;
+  var tooltipInteracting = false;
 
   function hideSelTooltip() {
+    if (tooltipInteracting) return;
     selTooltip.classList.remove('visible');
     selText = '';
+    savedRange = null;
   }
 
-  readerContent.addEventListener('mouseup', () => {
-    setTimeout(() => {
-      const sel = window.getSelection();
-      const text = sel ? sel.toString().trim() : '';
-      if (!text || text.length < 2) { hideSelTooltip(); return; }
+  function forceHideSelTooltip() {
+    tooltipInteracting = false;
+    selTooltip.classList.remove('visible');
+    selText = '';
+    savedRange = null;
+  }
 
-      const range = sel.getRangeAt(0);
-      const rect = range.getBoundingClientRect();
-      const parentRect = document.querySelector('.reader-body').getBoundingClientRect();
+  function showSelTooltip() {
+    var sel = window.getSelection();
+    var text = sel ? sel.toString().trim() : '';
+    if (!text || text.length < 2) { hideSelTooltip(); return; }
+    if (!sel.rangeCount) return;
+    var range = sel.getRangeAt(0);
+    var rect = range.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return;
+    savedRange = range.cloneRange();
+    selTooltip.style.left = '0px';
+    selTooltip.style.top = '0px';
+    selTooltip.style.transform = 'none';
+    selTooltip.style.visibility = 'hidden';
+    selTooltip.classList.add('visible');
+    var ttW = selTooltip.offsetWidth || 220;
+    var ttH = selTooltip.offsetHeight || 40;
+    selTooltip.classList.remove('visible');
+    selTooltip.style.visibility = '';
+    var pad = 8;
+    var left = rect.left + rect.width / 2 - ttW / 2;
+    if (left < pad) left = pad;
+    if (left + ttW > window.innerWidth - pad) left = window.innerWidth - pad - ttW;
+    var top = rect.bottom + pad;
+    if (top + ttH > window.innerHeight - pad) top = rect.top - ttH - pad;
+    selTooltip.style.left = left + 'px';
+    selTooltip.style.top = top + 'px';
+    selText = text;
+    selTooltip.classList.add('visible');
+  }
 
-      selTooltip.style.left = (rect.left + rect.width / 2 - parentRect.left) + 'px';
-      selTooltip.style.top = (rect.top - parentRect.top - 44) + 'px';
-      selTooltip.style.transform = 'translateX(-50%)';
-      selText = text;
-      selTooltip.classList.add('visible');
-    }, 10);
+  readerContent.addEventListener('mouseup', function() {
+    setTimeout(showSelTooltip, 10);
   });
 
-  document.addEventListener('mousedown', (e) => {
+  var _selDebounce = null;
+  document.addEventListener('selectionchange', function() {
+    if (tooltipInteracting) return;
+    clearTimeout(_selDebounce);
+    _selDebounce = setTimeout(function() {
+      var sel = window.getSelection();
+      if (!sel || !sel.rangeCount) return;
+      var anchor = sel.anchorNode;
+      if (!anchor) return;
+      var el = anchor.nodeType === 3 ? anchor.parentElement : anchor;
+      if (!el || !readerContent.contains(el)) return;
+      var text = sel.toString().trim();
+      if (text.length >= 2) showSelTooltip();
+    }, 300);
+  });
+
+  document.addEventListener('mousedown', function(e) {
     if (selTooltip.contains(e.target)) return;
-    hideSelTooltip();
+    forceHideSelTooltip();
   });
 
-  document.getElementById('reader-sel-ask').addEventListener('click', () => {
-    if (!selText) return;
-    const quote = '"' + (selText.length > 200 ? selText.slice(0, 200) + '…' : selText) + '"';
+  selTooltip.addEventListener('touchstart', function(e) {
+    tooltipInteracting = true;
+    e.stopPropagation();
+  }, { passive: true });
+  selTooltip.addEventListener('touchend', function(e) {
+    e.stopPropagation();
+    setTimeout(function() { tooltipInteracting = false; }, 100);
+  }, { passive: true });
+
+  document.getElementById('reader-sel-ask').addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    var text = selText || (savedRange ? savedRange.toString().trim() : '');
+    if (!text) return;
+    var quote = '"' + (text.length > 200 ? text.slice(0, 200) + '…' : text) + '"';
     chatInput.value = 'Regarding this passage: ' + quote + '\n\n';
     chatInput.focus();
     chatInput.style.height = 'auto';
     chatInput.style.height = chatInput.scrollHeight + 'px';
-    window.getSelection().removeAllRanges();
-    hideSelTooltip();
+    try { window.getSelection().removeAllRanges(); } catch(e2) {}
+    forceHideSelTooltip();
   });
+
+
+  // --- Highlight system (verse-based) ---
+  var hlColors = { green: 'rgba(76,175,80,0.25)', blue: 'rgba(100,149,237,0.25)', red: 'rgba(220,80,80,0.25)' };
+
+  function getHighlightKey() {
+    var bn = readerBookSelect ? readerBookSelect.value : '1';
+    return 'bv_hl_' + bn;
+  }
+
+  function saveHighlights() {
+    var data = {};
+    readerContent.querySelectorAll('.reader-verse[data-hl-color]').forEach(function(v) {
+      data[v.id] = v.dataset.hlColor;
+    });
+    try { localStorage.setItem(getHighlightKey(), JSON.stringify(data)); } catch(e) {}
+  }
+
+  function loadHighlights() {
+    readerContent.querySelectorAll('.reader-verse[data-hl-color]').forEach(function(v) {
+      removeVerseHighlight(v);
+    });
+    readerContent.querySelectorAll('mark[data-hl]').forEach(function(m) {
+      m.replaceWith(document.createTextNode(m.textContent));
+    });
+    readerContent.normalize();
+    var data = {};
+    try { data = JSON.parse(localStorage.getItem(getHighlightKey()) || '{}'); } catch(e) {}
+    Object.keys(data).forEach(function(vid) {
+      var el = document.getElementById(vid);
+      if (!el) return;
+      applyVerseHighlight(el, data[vid]);
+    });
+  }
+
+  function applyVerseHighlight(verseEl, color) {
+    var textEl = verseEl.querySelector('.reader-verse-text');
+    if (!textEl) return;
+    verseEl.dataset.hlColor = color;
+    textEl.style.background = hlColors[color] || '';
+    textEl.style.borderRadius = '3px';
+    textEl.style.boxDecorationBreak = 'clone';
+    textEl.style.webkitBoxDecorationBreak = 'clone';
+  }
+
+  function removeVerseHighlight(verseEl) {
+    var textEl = verseEl.querySelector('.reader-verse-text');
+    if (!textEl) return;
+    delete verseEl.dataset.hlColor;
+    textEl.style.background = '';
+    textEl.style.borderRadius = '';
+  }
+
+  function highlightVerse(verseId, color) {
+    var el = document.getElementById(verseId);
+    if (!el) return;
+    if (color === 'clear' || el.dataset.hlColor === color) {
+      removeVerseHighlight(el);
+    } else {
+      applyVerseHighlight(el, color);
+    }
+    saveHighlights();
+  }
+
+  // --- Verse action popover ---
+  var versePopover = document.getElementById('verse-action-popover');
+  var versePopoverTarget = null;
+
+  function showVersePopover(verseEl) {
+    versePopoverTarget = verseEl;
+    var numEl = verseEl.querySelector('.reader-verse-num');
+    var anchor = numEl || verseEl;
+    var rect = anchor.getBoundingClientRect();
+    var pw = versePopover.offsetWidth || 180;
+    var left = rect.left + rect.width / 2 - pw / 2;
+    if (left < 8) left = 8;
+    if (left + pw > window.innerWidth - 8) left = window.innerWidth - 8 - pw;
+    var top = rect.bottom + 8;
+    if (top + 60 > window.innerHeight) top = rect.top - 60;
+    versePopover.style.left = left + 'px';
+    versePopover.style.top = top + 'px';
+    var cur = verseEl.dataset.hlColor || '';
+    versePopover.querySelectorAll('.vp-color').forEach(function(c) {
+      c.classList.toggle('selected', c.dataset.color === cur);
+    });
+    versePopover.classList.add('visible');
+  }
+
+  function hideVersePopover() {
+    versePopover.classList.remove('visible');
+    versePopoverTarget = null;
+  }
+
+  document.addEventListener('click', function(e) {
+    if (versePopover.classList.contains('visible') && !versePopover.contains(e.target) && !e.target.closest('.reader-verse-num')) {
+      hideVersePopover();
+    }
+  });
+
+  versePopover.querySelectorAll('.vp-color').forEach(function(c) {
+    c.addEventListener('click', function() {
+      if (!versePopoverTarget) return;
+      highlightVerse(versePopoverTarget.id, c.dataset.color);
+      hideVersePopover();
+    });
+  });
+
+  document.getElementById('vp-note-btn').addEventListener('click', function() {
+    if (!versePopoverTarget) return;
+    var vid = versePopoverTarget.id;
+    hideVersePopover();
+    openNoteModal('', vid);
+  });
+
+
+  // --- Note modal system ---
+  var noteModalOverlay = document.getElementById('note-modal-overlay');
+  var noteModalBook = document.getElementById('note-modal-book');
+  var noteModalChapter = document.getElementById('note-modal-chapter');
+  var noteModalVerse = document.getElementById('note-modal-verse');
+  var noteModalText = document.getElementById('note-modal-text');
+  var noteModalCancel = document.getElementById('note-modal-cancel');
+  var noteModalSave = document.getElementById('note-modal-save');
+
+  function populateNoteModalBooks() {
+    noteModalBook.innerHTML = '';
+    Object.keys(bookNames).sort(function(a,b){ return parseInt(a)-parseInt(b); }).forEach(function(num) {
+      var opt = document.createElement('option');
+      opt.value = num;
+      opt.textContent = bookNames[num];
+      noteModalBook.appendChild(opt);
+    });
+  }
+
+  function populateNoteModalChapters(bookNum) {
+    noteModalChapter.innerHTML = '';
+    var count = chapterCounts[bookNum] || chapterCounts[String(bookNum)] || 1;
+    for (var c = 1; c <= count; c++) {
+      var opt = document.createElement('option');
+      opt.value = String(c);
+      opt.textContent = 'Ch ' + c;
+      noteModalChapter.appendChild(opt);
+    }
+    noteModalChapter.value = '1';
+  }
+
+  function populateNoteModalVerses(bookNum, ch) {
+    noteModalVerse.innerHTML = '';
+    var count = getVerseCount(bookNum, ch);
+    for (var v = 1; v <= count; v++) {
+      var opt = document.createElement('option');
+      opt.value = String(v);
+      opt.textContent = 'v' + v;
+      noteModalVerse.appendChild(opt);
+    }
+    noteModalVerse.value = '1';
+  }
+
+  function getVerseCount(bookNum, ch) {
+    return verseCounts[bookNum + '_' + ch] || verseCounts[String(bookNum) + '_' + ch] || 1;
+  }
+
+  function openNoteModal(prefillText, prefillVerseId) {
+    populateNoteModalBooks();
+    var curBook = readerBookSelect ? readerBookSelect.value : '1';
+    noteModalBook.value = curBook;
+    populateNoteModalChapters(curBook);
+
+    var targetCh = 1, targetV = 1;
+    if (prefillVerseId) {
+      var match = prefillVerseId.match(/reader-v-(\d+)-(\d+)/);
+      if (match) { targetCh = parseInt(match[1]) || 1; targetV = parseInt(match[2]) || 1; }
+    } else {
+      var midVerse = findMidScreenVerse();
+      if (midVerse) {
+        var m2 = midVerse.id.match(/reader-v-(\d+)-(\d+)/);
+        if (m2) { targetCh = parseInt(m2[1]) || 1; targetV = parseInt(m2[2]) || 1; }
+      }
+    }
+    if (targetCh < 1) targetCh = readerChapterSelect ? (parseInt(readerChapterSelect.value) || 1) : 1;
+
+    noteModalChapter.value = String(targetCh);
+    if (!noteModalChapter.value || noteModalChapter.value !== String(targetCh)) {
+      noteModalChapter.value = noteModalChapter.options.length ? noteModalChapter.options[0].value : '1';
+    }
+    populateNoteModalVerses(curBook, parseInt(noteModalChapter.value) || 1);
+    noteModalVerse.value = String(targetV);
+
+    noteModalText.value = prefillText || '';
+    noteModalOverlay.classList.add('visible');
+    setTimeout(function() { noteModalText.focus(); }, 100);
+  }
+
+  function closeNoteModal() {
+    noteModalOverlay.classList.remove('visible');
+    noteModalText.value = '';
+  }
+
+  function findMidScreenVerse() {
+    var verses = readerContent.querySelectorAll('.reader-verse');
+    var mid = window.innerHeight / 2;
+    var best = null, bestDist = Infinity;
+    verses.forEach(function(v) {
+      var r = v.getBoundingClientRect();
+      var d = Math.abs((r.top + r.bottom) / 2 - mid);
+      if (d < bestDist) { bestDist = d; best = v; }
+    });
+    return best;
+  }
+
+  noteModalBook.addEventListener('change', function() {
+    var bn = parseInt(noteModalBook.value);
+    populateNoteModalChapters(bn);
+    populateNoteModalVerses(bn, 1);
+  });
+
+  noteModalChapter.addEventListener('change', function() {
+    var bn = parseInt(noteModalBook.value);
+    var ch = parseInt(noteModalChapter.value);
+    populateNoteModalVerses(bn, ch);
+  });
+
+  noteModalCancel.addEventListener('click', closeNoteModal);
+  noteModalOverlay.addEventListener('click', function(e) {
+    if (e.target === noteModalOverlay) closeNoteModal();
+  });
+
+  noteModalSave.addEventListener('click', function() {
+    var text = noteModalText.value.trim();
+    if (!text) return;
+    var bn = noteModalBook.value || (readerBookSelect ? readerBookSelect.value : '1');
+    var ch = noteModalChapter.value || '1';
+    var v = noteModalVerse.value || '1';
+    var verseId = 'reader-v-' + ch + '-' + v;
+    var notesKey = 'bv_notes_' + bn;
+    var an = {};
+    try { an = JSON.parse(localStorage.getItem(notesKey) || '{}'); } catch(e) {}
+    if (!an[verseId]) an[verseId] = [];
+    an[verseId].push({ text: text, source: 'user', ts: Date.now() });
+    try { localStorage.setItem(notesKey, JSON.stringify(an)); } catch(e) {}
+    closeNoteModal();
+    refreshNoteDots();
+    if (currentReaderTab === 'notes') renderAllNotes();
+  });
+
+  // --- Verse Notes System (integrated into reader chat panel) ---
+  var notesView = document.getElementById('reader-notes-view');
+  var notesList = document.getElementById('reader-notes-list');
+  var readerTabToggle = document.getElementById('reader-tab-toggle');
+  var currentReaderTab = 'ai';
+
+  function getNotesKey() {
+    var bn = readerBookSelect ? readerBookSelect.value : '1';
+    return 'bv_notes_' + bn;
+  }
+
+  function getAllNotes() {
+    try { return JSON.parse(localStorage.getItem(getNotesKey()) || '{}'); } catch(e) { return {}; }
+  }
+
+  function saveAllNotes(notes) {
+    try { localStorage.setItem(getNotesKey(), JSON.stringify(notes)); } catch(e) {}
+  }
+
+  var readerNewChatBtn = document.getElementById('reader-chat-new-btn');
+
+  function switchReaderTab(tab) {
+    currentReaderTab = tab;
+    readerTabToggle.querySelectorAll('.reader-tab-btn').forEach(function(b) {
+      b.classList.toggle('active', b.dataset.tab === tab);
+    });
+    var row2 = document.getElementById('reader-chat-header-row2');
+    if (tab === 'notes') {
+      chatMsgContainer.style.display = 'none';
+      document.getElementById('reader-chat-input-wrap').style.display = 'none';
+      document.getElementById('reader-chat-disclaimer').style.display = 'none';
+      if (row2) row2.style.display = 'none';
+      notesView.style.display = 'flex';
+      renderAllNotes();
+    } else {
+      notesView.style.display = 'none';
+      chatMsgContainer.style.display = '';
+      document.getElementById('reader-chat-input-wrap').style.display = '';
+      if (row2) row2.style.display = 'flex';
+    }
+  }
+
+  if (readerTabToggle) {
+    readerTabToggle.querySelectorAll('.reader-tab-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        switchReaderTab(btn.dataset.tab);
+      });
+    });
+  }
+
+  function parseVerseId(vid) {
+    var m = vid.match(/^reader-v-(\d+)-(\d+)$/);
+    return m ? { ch: parseInt(m[1]), v: parseInt(m[2]) } : { ch: 0, v: 0 };
+  }
+
+  function renderAllNotes() {
+    var allNotes = getAllNotes();
+    var allEntries = [];
+    Object.keys(allNotes).forEach(function(vid) {
+      var parsed = parseVerseId(vid);
+      (allNotes[vid] || []).forEach(function(n, i) {
+        allEntries.push({ vid: vid, idx: i, ch: parsed.ch, v: parsed.v, text: n.text, source: n.source, ts: n.ts });
+      });
+    });
+    allEntries.sort(function(a, b) {
+      if (a.ch !== b.ch) return a.ch - b.ch;
+      if (a.v !== b.v) return a.v - b.v;
+      return (a.ts || 0) - (b.ts || 0);
+    });
+
+    if (allEntries.length === 0) {
+      notesList.innerHTML = '<div class="reader-notes-empty">No notes yet.<br>Use the Add Note button or tap a verse number.</div>';
+      return;
+    }
+
+    var html = '';
+    var lastCh = -1;
+    allEntries.forEach(function(n) {
+      if (n.ch !== lastCh) {
+        html += '<div class="reader-notes-chapter-label">Chapter ' + n.ch + '</div>';
+        lastCh = n.ch;
+      }
+      var src = n.source === 'ai' ? 'AI' : '';
+      var escaped = (n.text || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+      html += '<div class="reader-note-item" data-vid="' + n.vid + '" data-idx="' + n.idx + '">' +
+        '<div class="note-source"><span class="note-verse-label">' + n.ch + ':' + n.v + '</span>' + (src ? '<span class="note-ai-badge">' + src + '</span>' : '') + '</div>' +
+        '<div class="note-body">' + escaped + '</div>' +
+        '<div class="note-actions">' +
+          '<button class="reader-note-edit" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="11" height="11"><path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>' +
+          '<button class="reader-note-delete" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="11" height="11"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>' +
+        '</div>' +
+        '</div>';
+    });
+    notesList.innerHTML = html;
+
+    notesList.querySelectorAll('.reader-note-delete').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var item = btn.closest('.reader-note-item');
+        var vid = item.dataset.vid;
+        var idx = parseInt(item.dataset.idx);
+        var an = getAllNotes();
+        var arr = an[vid] || [];
+        arr.splice(idx, 1);
+        if (arr.length === 0) delete an[vid];
+        else an[vid] = arr;
+        saveAllNotes(an);
+        renderAllNotes();
+        refreshNoteDots();
+      });
+    });
+
+    notesList.querySelectorAll('.reader-note-edit').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var item = btn.closest('.reader-note-item');
+        if (item.classList.contains('editing')) return;
+        var vid = item.dataset.vid;
+        var idx = parseInt(item.dataset.idx);
+        var an = getAllNotes();
+        var arr = an[vid] || [];
+        if (!arr[idx]) return;
+        var raw = arr[idx].text || '';
+        item.classList.add('editing');
+        var body = item.querySelector('.note-body');
+        var actions = item.querySelector('.note-actions');
+        actions.style.display = 'none';
+        body.innerHTML = '<textarea class="note-edit-area">' + raw.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</textarea>' +
+          '<div class="note-edit-btns">' +
+            '<button class="note-edit-cancel">Cancel</button>' +
+            '<button class="note-edit-save">Save</button>' +
+          '</div>';
+        var ta = body.querySelector('.note-edit-area');
+        ta.focus();
+        ta.setSelectionRange(ta.value.length, ta.value.length);
+        body.querySelector('.note-edit-cancel').addEventListener('click', function(ev) {
+          ev.stopPropagation();
+          renderAllNotes();
+        });
+        body.querySelector('.note-edit-save').addEventListener('click', function(ev) {
+          ev.stopPropagation();
+          var newText = ta.value.trim();
+          if (!newText) return;
+          arr[idx].text = newText;
+          arr[idx].ts = Date.now();
+          an[vid] = arr;
+          saveAllNotes(an);
+          renderAllNotes();
+        });
+      });
+    });
+
+    notesList.querySelectorAll('.reader-note-item').forEach(function(item) {
+      item.addEventListener('click', function() {
+        if (item.classList.contains('editing')) return;
+        var vid = item.dataset.vid;
+        var el = document.getElementById(vid);
+        if (!el) return;
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('reader-verse-flash');
+        setTimeout(function() { el.classList.remove('reader-verse-flash'); }, 1500);
+      });
+    });
+  }
+
+  function addNoteToVerse(verseId, text, source) {
+    if (!text || !text.trim()) return;
+    var an = getAllNotes();
+    if (!an[verseId]) an[verseId] = [];
+    an[verseId].push({ text: text.trim(), source: source || 'user', ts: Date.now() });
+    saveAllNotes(an);
+    refreshNoteDots();
+    if (currentReaderTab === 'notes') renderAllNotes();
+  }
+
+  function openNotesPanel(verseId, verseLabel) {
+    switchReaderTab('notes');
+  }
+
+  function refreshNoteDots() {
+    readerContent.querySelectorAll('.reader-verse-note-dot').forEach(function(d) { d.remove(); });
+    var allNotes = getAllNotes();
+    Object.keys(allNotes).forEach(function(vid) {
+      if (!allNotes[vid] || allNotes[vid].length === 0) return;
+      var verse = readerContent.querySelector('#' + vid);
+      if (!verse) return;
+      var existing = verse.querySelector('.reader-verse-note-dot');
+      if (existing) return;
+      var dot = document.createElement('span');
+      dot.className = 'reader-verse-note-dot';
+      dot.title = allNotes[vid].length + ' note' + (allNotes[vid].length > 1 ? 's' : '');
+      var textEl = verse.querySelector('.reader-verse-text');
+      if (textEl) {
+        textEl.appendChild(dot);
+      } else {
+        verse.appendChild(dot);
+      }
+    });
+  }
+
+  readerContent.addEventListener('click', function(e) {
+    var dotEl = e.target.closest('.reader-verse-note-dot');
+    if (dotEl) {
+      var verse = dotEl.closest('.reader-verse');
+      var vid = verse ? verse.id : '';
+      switchReaderTab('notes');
+      if (vid) {
+        setTimeout(function() {
+          var noteEl = notesList.querySelector('.reader-note-item[data-vid="' + vid + '"]');
+          if (noteEl) {
+            noteEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            noteEl.style.background = 'rgba(201,168,76,0.1)';
+            setTimeout(function() { noteEl.style.background = ''; }, 1200);
+          }
+        }, 80);
+      }
+      return;
+    }
+    var numEl = e.target.closest('.reader-verse-num');
+    if (numEl) {
+      var verse = numEl.closest('.reader-verse');
+      if (verse) {
+        if (versePopover.classList.contains('visible') && versePopoverTarget === verse) {
+          hideVersePopover();
+        } else {
+          showVersePopover(verse);
+        }
+      }
+    }
+  });
+
+  var _loadHlTimer = null;
+  var observer = new MutationObserver(function() {
+    clearTimeout(_loadHlTimer);
+    _loadHlTimer = setTimeout(function() {
+      loadHighlights();
+      refreshNoteDots();
+      if (currentReaderTab === 'notes') renderAllNotes();
+    }, 300);
+  });
+  observer.observe(readerInner, { childList: true });
 
   const WORKER_URL = 'https://bibleverse-ai.bibleverse.workers.dev';
 
@@ -1580,9 +2285,12 @@
   // Clear chat when reader closes or book changes
   function clearChat() {
     chatHistory = [];
+    saveReaderChatHistory();
     renderChat();
   }
-  document.getElementById('reader-close').addEventListener('click', clearChat);
+  document.getElementById('reader-close').addEventListener('click', function() {
+    // Don't clear — chat is saved per book+chapter
+  });
 
   let pulseTimer = null;
   function focusResult(item) {
@@ -1719,8 +2427,19 @@
   const homeChatSendBtn = document.getElementById('home-chat-send');
   const homeChatMessages = document.getElementById('home-chat-messages');
   const homeChatWelcome = document.getElementById('home-chat-welcome');
+  let homeChatConvoId = null;
   let homeChatHistory = [];
   let homeChatStreaming = false;
+
+  function getConvoList() {
+    return JSON.parse(localStorage.getItem('bv_convo_list') || '[]');
+  }
+  function saveConvoList(list) {
+    try { localStorage.setItem('bv_convo_list', JSON.stringify(list)); } catch(e) {}
+  }
+  function newConvoId() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  }
 
   const homeChatModelSelect = setupDropdown('cd-home-model', 'cd-home-model-trigger', 'cd-home-model-menu', async (val) => {
     localStorage.setItem('bv_llm_model', val);
@@ -1836,18 +2555,156 @@
   }
 
   function exitChatMode() {
+    homeChatConvoId = null;
+    homeChatHistory = [];
+    localStorage.removeItem('bv_home_convo_id');
     homeChatContainer.classList.remove('chatting');
     document.body.style.overflow = '';
-    homeChatHistory = [];
     renderHomeChat();
     switchHomeMode('chat');
     if (mobileTopbar && window.innerWidth <= 800) mobileTopbar.style.display = 'flex';
   }
 
   document.getElementById('home-chat-back').addEventListener('click', exitChatMode);
+  function startNewChat() {
+    if (homeChatHistory.length === 0) return;
+    homeChatConvoId = null;
+    homeChatHistory = [];
+    localStorage.removeItem('bv_home_convo_id');
+    renderHomeChat();
+    if (homeChatContainer.classList.contains('chatting')) exitChatMode();
+  }
+  document.getElementById('home-chat-new').addEventListener('click', startNewChat);
+
+  var topbarTitle = document.getElementById('mobile-topbar-title');
+  if (topbarTitle) {
+    topbarTitle.addEventListener('click', function() {
+      homeChatConvoId = null;
+      homeChatHistory = [];
+      localStorage.removeItem('bv_home_convo_id');
+      renderHomeChat();
+      if (homeChatContainer.classList.contains('chatting')) exitChatMode();
+    });
+  }
+
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && homeChatContainer.classList.contains('chatting')) exitChatMode();
   });
+
+  document.getElementById('reader-chat-new-btn').addEventListener('click', function() {
+    if (chatHistory.length === 0) return;
+    if (confirm('Start a new chat? This will clear the current conversation.')) {
+      clearChat();
+    }
+  });
+
+  // --- Chat history panel ---
+  var historyPanel = document.getElementById('mobile-history-panel');
+  var historyOverlay = document.getElementById('mobile-history-overlay');
+  var historyList = document.getElementById('mobile-history-list');
+  var historyBtn = document.getElementById('mobile-chat-history');
+  var historyCloseBtn = document.getElementById('mobile-history-close');
+
+  function deleteConvo(id) {
+    var list = getConvoList().filter(function(c) { return c.id !== id; });
+    saveConvoList(list);
+    try { localStorage.removeItem('bv_convo_' + id); } catch(e) {}
+    if (homeChatConvoId === id) {
+      homeChatConvoId = null;
+      homeChatHistory = [];
+      renderHomeChat();
+    }
+    renderHistoryPanel();
+  }
+
+  function renderHistoryPanel() {
+    if (!historyList) return;
+    var list = getConvoList();
+    if (list.length === 0) {
+      historyList.innerHTML = '<div class="mobile-history-empty">No conversations yet.</div>';
+      return;
+    }
+    historyList.innerHTML = list.map(function(c) {
+      var ago = formatTimeAgo(c.time);
+      return '<div class="mobile-history-item" data-id="' + c.id + '">' +
+        '<div class="mobile-history-item-content">' +
+          '<div class="mobile-history-item-title">' + escapeHtml(c.title) + '</div>' +
+          '<div class="mobile-history-item-time">' + ago + '</div>' +
+        '</div>' +
+        '<button class="mobile-history-delete" data-id="' + c.id + '" title="Delete">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>' +
+        '</button>' +
+      '</div>';
+    }).join('');
+
+    historyList.querySelectorAll('.mobile-history-item-content').forEach(function(content) {
+      content.addEventListener('click', function() {
+        var item = content.closest('.mobile-history-item');
+        var id = item.dataset.id;
+        homeChatConvoId = id;
+        homeChatHistory = JSON.parse(localStorage.getItem('bv_convo_' + id) || '[]');
+        localStorage.setItem('bv_home_convo_id', id);
+        enterChatMode();
+        renderHomeChat();
+        closeHistoryPanel();
+      });
+    });
+
+    historyList.querySelectorAll('.mobile-history-delete').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var id = btn.dataset.id;
+        var item = btn.closest('.mobile-history-item');
+        var existing = item.querySelector('.mobile-history-confirm');
+        if (existing) { existing.remove(); return; }
+        var confirm = document.createElement('div');
+        confirm.className = 'mobile-history-confirm';
+        confirm.innerHTML = '<span>Delete?</span>' +
+          '<button class="mobile-history-confirm-yes">Delete</button>' +
+          '<button class="mobile-history-confirm-no">Cancel</button>';
+        item.appendChild(confirm);
+        confirm.querySelector('.mobile-history-confirm-yes').addEventListener('click', function(ev) {
+          ev.stopPropagation();
+          deleteConvo(id);
+        });
+        confirm.querySelector('.mobile-history-confirm-no').addEventListener('click', function(ev) {
+          ev.stopPropagation();
+          confirm.remove();
+        });
+      });
+    });
+  }
+
+  function escapeHtml(s) {
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function formatTimeAgo(ts) {
+    var diff = Date.now() - ts;
+    var mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return mins + 'm ago';
+    var hrs = Math.floor(mins / 60);
+    if (hrs < 24) return hrs + 'h ago';
+    var days = Math.floor(hrs / 24);
+    if (days < 7) return days + 'd ago';
+    return new Date(ts).toLocaleDateString();
+  }
+
+  function openHistoryPanel() {
+    renderHistoryPanel();
+    if (historyPanel) historyPanel.classList.add('open');
+    if (historyOverlay) historyOverlay.classList.add('open');
+  }
+  function closeHistoryPanel() {
+    if (historyPanel) historyPanel.classList.remove('open');
+    if (historyOverlay) historyOverlay.classList.remove('open');
+  }
+  if (historyBtn) historyBtn.addEventListener('click', openHistoryPanel);
+  if (historyCloseBtn) historyCloseBtn.addEventListener('click', closeHistoryPanel);
+  if (historyOverlay) historyOverlay.addEventListener('click', closeHistoryPanel);
 
   const homeInputWrap = document.querySelector('.home-chat-input-wrap');
 
@@ -1862,6 +2719,7 @@
     homeChatSendBtn.classList.remove('ready');
     enterChatMode();
 
+    if (!homeChatConvoId) homeChatConvoId = newConvoId();
     homeChatHistory.push({ role: 'user', content: text });
     homeChatHistory.push({ role: 'assistant', content: '' });
     renderHomeChat();
@@ -1899,7 +2757,24 @@
       }
       renderHomeChat();
     }
+    saveHomeChatHistory();
     setHomeStreaming(false);
+  }
+
+  function saveHomeChatHistory() {
+    if (!homeChatConvoId || homeChatHistory.length === 0) return;
+    try {
+      localStorage.setItem('bv_convo_' + homeChatConvoId, JSON.stringify(homeChatHistory));
+      var list = getConvoList();
+      var existing = list.findIndex(function(c) { return c.id === homeChatConvoId; });
+      var firstUserMsg = homeChatHistory.find(function(m) { return m.role === 'user' && m.content; });
+      var title = firstUserMsg ? firstUserMsg.content.slice(0, 60) : 'New chat';
+      var entry = { id: homeChatConvoId, title: title, time: Date.now() };
+      if (existing >= 0) { list[existing] = entry; } else { list.unshift(entry); }
+      if (list.length > 50) list = list.slice(0, 50);
+      saveConvoList(list);
+      localStorage.setItem('bv_home_convo_id', homeChatConvoId);
+    } catch(e) {}
   }
 
   const homeSearchFooter = document.getElementById('home-search-footer');
@@ -2071,6 +2946,7 @@
   if (window.innerWidth <= 800) {
     switchHomeMode('chat');
     chatModelChosen = true;
+    // Always start on fresh chat — use history panel to resume past conversations
 
     const mobileReader = document.getElementById('mobile-open-reader');
     if (mobileReader) {
