@@ -1045,9 +1045,23 @@
       readerChapterSelect.value = String(cv.chapter);
       updateNavButtons(chapters);
     } else {
-      readerContent.scrollTop = 0;
-      if (chapters.length) readerChapterSelect.value = String(chapters[0]);
-      updateNavButtons(chapters);
+      var savedPos = null;
+      try { savedPos = JSON.parse(localStorage.getItem('bv_reader_pos')); } catch(e) {}
+      if (savedPos && String(savedPos.book) === String(bookNum) && savedPos.vid) {
+        requestAnimationFrame(function() {
+          var target = document.getElementById(savedPos.vid);
+          if (target) {
+            target.scrollIntoView({ behavior: 'instant', block: 'start' });
+            var m = savedPos.vid.match(/reader-v-(\d+)-/);
+            if (m) readerChapterSelect.value = m[1];
+          }
+          updateNavButtons(chapters);
+        });
+      } else {
+        readerContent.scrollTop = 0;
+        if (chapters.length) readerChapterSelect.value = String(chapters[0]);
+        updateNavButtons(chapters);
+      }
     }
 
     if (isVisible) {
@@ -1076,6 +1090,13 @@
       readerOverlay.style.paddingBottom = (barH > 0 ? barH : 20) + 'px';
     }
 
+    var savedPos = null;
+    if (!highlightRefs || highlightRefs.length === 0) {
+      try { savedPos = JSON.parse(localStorage.getItem('bv_reader_pos')); } catch(e) {}
+      if (savedPos && savedPos.book) {
+        bookNum = savedPos.book;
+      }
+    }
     const scrollRef = highlightRefs.length > 0 ? highlightRefs[0] : null;
 
     if (readerTransitionActive) {
@@ -1227,7 +1248,8 @@
     renderBook(readerBookNum, scrollRef);
   });
 
-  // Scroll spy: update chapter select as user scrolls
+  // Scroll spy: update chapter select as user scrolls + save position
+  var _scrollSaveTimer = null;
   readerContent.addEventListener('scroll', () => {
     const headings = readerInner.querySelectorAll('.reader-chapter-heading');
     let active = null;
@@ -1242,6 +1264,13 @@
         updateNavButtons(chapters);
       }
     }
+    clearTimeout(_scrollSaveTimer);
+    _scrollSaveTimer = setTimeout(function() {
+      var mid = findMidScreenVerse();
+      if (mid && readerBookNum) {
+        try { localStorage.setItem('bv_reader_pos', JSON.stringify({ book: readerBookNum, vid: mid.id })); } catch(e) {}
+      }
+    }, 300);
   });
 
   // Wire the "Read in context" button from the modal
