@@ -843,11 +843,14 @@
     }
     .hero-header > * { pointer-events: auto; }
     .hero-header h1 {
+      display: inline-block;
       font-size: 2.2rem;
       font-weight: 700;
       letter-spacing: -0.03em;
       color: transparent;
       background: linear-gradient(165deg, #f0d878 0%, #c9a84c 40%, #8a6d2e 100%);
+      background-size: 700px 60px;
+      background-position: center;
       -webkit-background-clip: text;
       background-clip: text;
       line-height: 1.1;
@@ -2901,28 +2904,7 @@
     }
     .sphere-edge-panel.collapsed h4 { margin-bottom: 0; }
 
-    /* --- Viewer mode (immersive zoom) --- */
-    .page-wrap.search-active .sphere-section {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-      clip: rect(0,0,0,0);
-      pointer-events: none;
-    }
-    .page-wrap.search-active .home-chat {
-      flex: 1;
-      height: 100vh;
-      justify-content: flex-start;
-      padding-top: 40px;
-      overflow: hidden;
-    }
-    .page-wrap.search-active .home-chat-inner {
-      max-height: calc(100vh - 60px);
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
+    /* --- Search-active layout (desktop sphere + results) --- */
     .page-wrap.search-active #home-search-results {
       max-height: none;
       flex: 1;
@@ -3464,6 +3446,7 @@
     .home-chat.chatting .home-chat-model-loading:not(.active) {
       display: none !important;
     }
+    .page-wrap.chatting-active .sphere-section { display: none !important; }
     .home-chat.chatting .home-chat-input-footer {
       display: flex !important;
     }
@@ -3478,7 +3461,8 @@
       flex-shrink: 0;
       padding-bottom: 24px;
     }
-    .home-chat.chatting .home-chat-disclaimer {
+    .home-chat.chatting .home-chat-disclaimer,
+    .home-chat.chatting .home-action-btns {
       display: none !important;
     }
 
@@ -3609,6 +3593,39 @@
     .home-chat-input-area {
       width: 100%;
     }
+    .home-action-btns {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 10px;
+      padding: 0 4px;
+    }
+    .home-action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 20px;
+      color: rgba(232,228,220,0.5);
+      font-family: var(--sans);
+      font-size: 0.78rem;
+      padding: 8px 16px;
+      cursor: pointer;
+      transition: all 0.15s;
+      letter-spacing: 0.01em;
+    }
+    .home-action-btn:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(201,168,76,0.2);
+      color: rgba(232,228,220,0.75);
+    }
+    .home-action-btn svg {
+      opacity: 0.5;
+      flex-shrink: 0;
+    }
+    .home-action-btn:hover svg { opacity: 0.75; }
     .home-chat-input-wrap {
       position: relative;
       display: flex;
@@ -3981,7 +3998,7 @@
       border-top: 1px solid rgba(255,255,255,0.02);
     }
 
-    @media (max-width: 800px) {
+    /* === Unified mobile-first layout (all screen sizes) === */
       html, body {
         overflow: hidden !important;
         height: 100% !important;
@@ -3999,17 +4016,17 @@
         overflow: hidden;
       }
 
-      /* Hide desktop-only elements */
       .mobile-hide-btn { display: none !important; }
       .mobile-header { display: none !important; }
-      .home-mode-toggle { display: none !important; }
       .model-picker { display: none !important; }
-      .home-search-footer { display: none !important; }
       .home-chat-back { display: none !important; }
       .home-chat-header-title { display: none !important; }
-      .search-loading-bar { display: none !important; }
       .home-chat-model-loading { display: none !important; }
       .home-footer { display: none !important; }
+      /* Desktop-only elements: hidden on mobile, shown on desktop */
+      .home-mode-toggle { display: none; }
+      .home-search-footer { display: none; }
+      .search-loading-bar { display: none; }
 
       /* ChatGPT-style full-height chat layout */
       .home-chat {
@@ -4101,10 +4118,6 @@
         height: 16px !important;
       }
 
-      /* Hide elements not needed on mobile */
-      .home-search-mode-toggle { display: none !important; }
-      .search-filter-btn { display: none !important; }
-      .stats-info-btn { display: none !important; }
       .home-chat-input-footer,
       .home-chat.chatting .home-chat-input-footer { display: none !important; }
       .mobile-model-label { display: flex !important; }
@@ -4361,7 +4374,121 @@
         padding: 20px !important;
         max-width: 92vw !important;
       }
+
+    /* === Desktop: show sphere + search mode === */
+    @media (min-width: 801px) {
+      .home-mode-toggle { display: flex !important; }
+      .mobile-topbar { display: none !important; }
+      .home-chat-input-area {
+        max-width: 560px;
+        margin-left: auto !important;
+        margin-right: auto !important;
+      }
+      .home-chat-input-wrap #home-chat-input {
+        border-radius: 28px !important;
+      }
+
+      .page-wrap.sphere-mode .sphere-section,
+      .page-wrap.search-active .sphere-section {
+        display: block !important;
+        position: relative;
+        width: 100%;
+        height: 50vh;
+        min-height: 360px;
+        flex-shrink: 0;
+      }
+      .page-wrap.sphere-mode .home-chat-welcome,
+      .page-wrap.search-active .home-chat-welcome { display: none !important; }
+      .page-wrap.sphere-mode .mobile-suggestions,
+      .page-wrap.search-active .mobile-suggestions { display: none !important; }
+      .page-wrap.sphere-mode .right-panels { display: none !important; }
+      .page-wrap.sphere-mode .home-chat,
+      .page-wrap.search-active .home-chat {
+        flex: 1;
+        min-height: 0;
+      }
+      .home-chat-welcome {
+        flex: 0 0 auto !important;
+        height: 50vh;
+        min-height: 360px;
+        justify-content: flex-start !important;
+        padding: 2.5rem 2rem 0 !important;
+      }
+      .home-chat-welcome .mobile-suggestions {
+        margin-top: auto;
+        margin-bottom: 6rem;
+      }
+      .home-chat-title-mobile { display: none !important; }
+      .home-chat-hero-desktop {
+        display: block !important;
+        text-align: center;
+        width: 100%;
+        align-self: stretch;
+        background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.25) 70%, transparent 100%);
+        padding: 0 2rem 2rem;
+      }
+      .home-chat-hero-desktop h1 {
+        display: inline-block !important;
+        font-size: 2.2rem !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.03em !important;
+        color: transparent !important;
+        background: linear-gradient(165deg, #f0d878 0%, #c9a84c 40%, #8a6d2e 100%) !important;
+        background-size: 700px 60px !important;
+        background-position: center !important;
+        -webkit-background-clip: text !important;
+        background-clip: text !important;
+        line-height: 1.1 !important;
+        margin: 0 0 0.3rem !important;
+      }
+      .home-chat-hero-desktop .sub {
+        font-size: 0.88rem !important;
+        color: rgba(232,228,220,0.7) !important;
+        max-width: 520px;
+        margin: 0 auto 0.6rem !important;
+        line-height: 1.6 !important;
+        font-weight: 300 !important;
+      }
+      .home-chat-input-area {
+        padding-top: 16px !important;
+      }
+
+      /* Reader: right-side panel on desktop */
+      .reader-body {
+        flex-direction: row !important;
+        overflow: hidden !important;
+        position: relative !important;
+      }
+      .reader-content {
+        flex: 1 !important;
+        min-width: 0 !important;
+      }
+      .reader-chat {
+        position: absolute !important;
+        top: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 370px !important;
+        min-width: 370px !important;
+        max-height: none !important;
+        border-left: 1px solid rgba(201,168,76,0.06) !important;
+        border-top: none !important;
+        z-index: 10 !important;
+        box-shadow: -4px 0 24px rgba(0,0,0,0.4) !important;
+      }
     }
+
+    /* === Mobile: hide search-specific sub-elements === */
+    @media (max-width: 800px) {
+      .home-search-mode-toggle { display: none !important; }
+      .search-filter-btn { display: none !important; }
+      .stats-info-btn { display: none !important; }
+      .mobile-topbar-title-suffix { display: none !important; }
+      .home-chat-hero-desktop { display: none !important; }
+      .home-action-btns { display: none !important; }
+    }
+    .home-chat-hero-desktop { display: none; }
+
   </style>
 </head>
 <body>
@@ -4434,16 +4561,13 @@
       setTimeout(function(){
         s.remove();
         document.dispatchEvent(new Event('splashDone'));
-      }, window.innerWidth <= 800 ? 2200 : 1600);
+      }, 2200);
     }
-    var isMob = window.innerWidth <= 800;
-    if (isMob) {
-      var splT = s.querySelector('.splash-title');
-      var splSub = s.querySelector('.splash-subtitle');
-      setTimeout(function(){ if (splT) splT.classList.add('spl-visible'); }, 800);
-      setTimeout(function(){ if (splSub) splSub.classList.add('spl-visible'); }, 1300);
-    }
-    setTimeout(dismiss, isMob ? 4600 : 3800);
+    var splT = s.querySelector('.splash-title');
+    var splSub = s.querySelector('.splash-subtitle');
+    setTimeout(function(){ if (splT) splT.classList.add('spl-visible'); }, 800);
+    setTimeout(function(){ if (splSub) splSub.classList.add('spl-visible'); }, 1300);
+    setTimeout(dismiss, 4600);
     s.addEventListener('click', dismiss);
   }
 
@@ -4577,7 +4701,7 @@ document.addEventListener('splashDone', function(){
   <button class="mobile-topbar-icon" id="mobile-chat-history" title="Chat history">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
   </button>
-  <span class="mobile-topbar-title" id="mobile-topbar-title" style="cursor:pointer;-webkit-tap-highlight-color:transparent;">BibleVerse <span style="opacity:0.45;font-weight:400;font-size:0.8em;">(Beta)</span></span>
+  <span class="mobile-topbar-title" id="mobile-topbar-title" style="cursor:pointer;-webkit-tap-highlight-color:transparent;">BibleVerse <span class="mobile-topbar-title-beta" style="opacity:0.45;font-weight:400;font-size:0.8em;">(Beta)</span><span class="mobile-topbar-title-suffix" style="opacity:0.45;font-weight:400;font-size:0.8em;">— The Modern Bible Interface</span></span>
   <button class="mobile-topbar-book" id="mobile-open-reader" aria-label="Read Bible">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="22" height="22">
       <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
@@ -4606,7 +4730,11 @@ document.addEventListener('splashDone', function(){
   <div class="home-chat-header-title">BibleVerse Chat</div>
   <div class="home-chat-inner">
     <div class="home-chat-welcome" id="home-chat-welcome">
-      <div class="home-chat-title">What would you like to explore?</div>
+      <div class="home-chat-title home-chat-title-mobile">What would you like to explore?</div>
+      <div class="home-chat-hero-desktop">
+        <h1>BibleVerse <span style="font-weight:300;">— The Modern Bible Interface</span></h1>
+        <p class="sub">Efficient exploration of humanity's most consequential text</p>
+      </div>
       <button class="home-read-btn mobile-hide-btn" id="hc-read-bible">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
           <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
@@ -4710,6 +4838,16 @@ document.addEventListener('splashDone', function(){
         </button>
         <button id="home-chat-stop" class="home-chat-stop" aria-label="Stop">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="2" width="10" height="10" rx="2" fill="currentColor"/></svg>
+        </button>
+      </div>
+      <div class="home-action-btns">
+        <button class="home-action-btn" id="home-action-history">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Chat History
+        </button>
+        <button class="home-action-btn" id="home-action-reader">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+          Read Bible with AI
         </button>
       </div>
       <span class="home-chat-disclaimer" id="home-chat-disclaimer" style="display:none;"></span>
@@ -5324,11 +5462,11 @@ document.getElementById('chat-methodology-overlay').addEventListener('click', fu
       offsetY: 12
     },
     {
-      target: 'hc-read-bible',
+      target: 'home-action-reader',
       title: 'Read the Bible with AI',
       desc: 'Read the Bible alongside your own personal AI assistant for real-time dialogue.',
-      arrow: 'bottom',
-      offsetY: -12
+      arrow: 'top',
+      offsetY: 12
     }
   ];
 
@@ -5470,6 +5608,6 @@ document.getElementById('chat-methodology-overlay').addEventListener('click', fu
 </script>
 
 <script src="js/common.js"></script>
-<script src="js/hero.js?v=20260302z"></script>
+<script src="js/hero.js?v=20260302z14"></script>
 </body>
 </html>

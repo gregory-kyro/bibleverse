@@ -7,7 +7,8 @@
  */
 
 (async function () {
-  const isMobileDevice = window.innerWidth <= 800;
+  const isMobileDevice = true;
+  const isDesktopWidth = window.innerWidth > 800;
   const data = await loadJSON('sphere.json?v=' + Date.now());
   const pts = data.points;
   const stats = data.stats;
@@ -171,11 +172,12 @@
     scene: { xaxis: axisCfg, yaxis: axisCfg, zaxis: axisCfg,
       aspectmode: 'cube', bgcolor: '#000', dragmode: false,
       camera: { eye: { x: 0.8, y: 0.8, z: 0.3 }, up: { x: 0, y: 0, z: 1 } } },
-    showlegend: false, margin: { l: 0, r: 0, t: 300, b: -180 }, autosize: true,
+    showlegend: false, margin: { l: 0, r: 0, t: 240, b: -140 }, autosize: true,
   };
 
   const plotEl = document.getElementById('sphere-plot');
-  if (!isMobileDevice) {
+  if (isDesktopWidth) {
+  document.querySelector('.page-wrap').classList.add('sphere-mode');
   await Plotly.newPlot(plotEl, traces, layout, {
     responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false,
   });
@@ -353,10 +355,10 @@
     });
     Plotly.restyle(plotEl, { visible: visibility });
   }
-  } // end if (!isMobileDevice) — Plotly init & sphere interactions
+  } // end if (isDesktopWidth) — Plotly init & sphere interactions
 
-  // Stats (desktop only — sphere not used on mobile)
-  if (!isMobileDevice) {
+  // Stats (desktop only — sphere section)
+  if (isDesktopWidth) {
     document.getElementById('stat-verses').textContent = stats.total_verses.toLocaleString();
     document.getElementById('stat-books').textContent = stats.books;
     document.getElementById('stat-refs').textContent = stats.arcs_in_dataset.toLocaleString();
@@ -380,7 +382,7 @@
   const highlightTraceIdx = traces.length;
   let focusTraceIdx = highlightTraceIdx + 1;
 
-  if (!isMobileDevice) {
+  if (isDesktopWidth) {
     Plotly.addTraces(plotEl, [
       { type: 'scatter3d', mode: 'markers',
         x: [], y: [], z: [], text: [], hoverinfo: 'text', showlegend: false,
@@ -655,7 +657,7 @@
     const shown = results.slice(0, 15);
     const hx = [], hy = [], hz = [], ht = [];
     for (const m of shown) { hx.push(m.p.sx); hy.push(m.p.sy); hz.push(m.p.sz); ht.push(`<b>${m.p.ref}</b><br><i>${wrapText(m.p.text, 60)}</i>`); }
-    Plotly.restyle(plotEl, { x: [hx], y: [hy], z: [hz], text: [ht] }, [highlightTraceIdx]);
+    if (isDesktopWidth) Plotly.restyle(plotEl, { x: [hx], y: [hy], z: [hz], text: [ht] }, [highlightTraceIdx]);
 
     homeSearchResults.style.display = 'none';
     void homeSearchResults.offsetHeight;
@@ -690,7 +692,7 @@
         if (p) { hx.push(p.sx); hy.push(p.sy); hz.push(p.sz); ht.push(`<b>${p.ref}</b><br><i>${wrapText(p.text, 60)}</i>`); }
       }
     }
-    Plotly.restyle(plotEl, { x: [hx], y: [hy], z: [hz], text: [ht] }, [highlightTraceIdx]);
+    if (isDesktopWidth) Plotly.restyle(plotEl, { x: [hx], y: [hy], z: [hz], text: [ht] }, [highlightTraceIdx]);
 
     homeSearchResults.style.display = 'none';
     void homeSearchResults.offsetHeight;
@@ -746,7 +748,7 @@
   }
 
   function restoreSphere() {
-    if (isMobileDevice || !sphereFaded) return;
+    if (!isDesktopWidth || !sphereFaded) return;
     sphereFaded = false;
     Plotly.restyle(plotEl, { 'marker.opacity': [ot.bookNum.map(() => 0.85)] }, [otTraceIdx]);
     Plotly.restyle(plotEl, { 'marker.opacity': [nt.bookNum.map(() => 0.85)] }, [ntTraceIdx]);
@@ -763,7 +765,7 @@
     searchList.innerHTML = '';
     searchDesc.innerHTML = '';
     document.querySelector('.page-wrap').classList.remove('search-active');
-    if (!isMobileDevice) {
+    if (isDesktopWidth) {
       Plotly.restyle(plotEl, { x: [[]], y: [[]], z: [[]], text: [[]] }, [highlightTraceIdx]);
       if (!sphereFaded) {
         Plotly.restyle(plotEl, { x: [[]], y: [[]], z: [[]], text: [[]] }, [focusTraceIdx]);
@@ -1149,7 +1151,7 @@
     firstNum.style.zIndex = '99999';
     var r1 = firstNum.getBoundingClientRect();
     tHl.style.top = (r1.bottom + 10) + 'px';
-    tHl.style.left = '16px';
+    tHl.style.left = r1.left + 'px';
     tHl.style.display = 'block';
 
     document.getElementById('reader-mt-next-hl').addEventListener('click', function() {
@@ -2441,7 +2443,7 @@
       requestAnimationFrame(tryStartRotation);
     }
   }
-  if (!isMobileDevice) {
+  if (isDesktopWidth) {
     tryStartRotation();
     plotEl.on('plotly_afterplot', tryStartRotation);
   }
@@ -2578,9 +2580,10 @@
   function enterChatMode() {
     if (homeChatContainer.classList.contains('chatting')) return;
     homeChatContainer.classList.add('chatting');
+    document.querySelector('.page-wrap').classList.add('chatting-active');
     document.body.style.overflow = 'hidden';
-    homeChatInput.placeholder = window.innerWidth <= 800 ? 'Enter any text...' : 'Ask anything about the Bible...';
-    if (mobileTopbar && window.innerWidth <= 800) mobileTopbar.style.display = 'none';
+    homeChatInput.placeholder = isDesktopWidth ? 'Ask anything about the Bible...' : 'Enter any text...';
+    if (mobileTopbar) mobileTopbar.style.display = 'none';
   }
 
   function exitChatMode() {
@@ -2588,10 +2591,11 @@
     homeChatHistory = [];
     localStorage.removeItem('bv_home_convo_id');
     homeChatContainer.classList.remove('chatting');
+    document.querySelector('.page-wrap').classList.remove('chatting-active');
     document.body.style.overflow = '';
     renderHomeChat();
-    switchHomeMode('chat');
-    if (mobileTopbar && window.innerWidth <= 800) mobileTopbar.style.display = 'flex';
+    switchHomeMode(isDesktopWidth ? 'search' : 'chat');
+    if (mobileTopbar) mobileTopbar.style.display = 'flex';
   }
 
   document.getElementById('home-chat-back').addEventListener('click', exitChatMode);
@@ -2834,29 +2838,31 @@
     homeModeChatBtn.classList.toggle('active', mode === 'chat');
     const isMobile = window.innerWidth <= 800;
     homeChatInput.placeholder = mode === 'search'
-      ? (isMobile ? 'Enter any text...' : 'Enter any word, phrase, or idea to find the most relevant verses and passages in the Bible...')
+      ? 'Enter any word, phrase, or idea...'
       : (isMobile ? 'Enter any text...' : 'Ask anything about the Bible...');
     homeSearchFooter.style.display = mode === 'search' ? '' : 'none';
     homeModelLoadingEl.classList.toggle('hidden-by-mode', mode === 'search');
+    document.querySelector('.page-wrap').classList.toggle('sphere-mode', mode === 'search' && isDesktopWidth);
     if (mode === 'search') {
       homeChatMessages.style.display = 'none';
       modelPickerEl.style.display = 'none';
       homeChatFooter.style.display = 'none';
       document.querySelector('.home-chat-input-area').style.display = '';
+      if (isDesktopWidth) {
+        requestAnimationFrame(() => {
+          Plotly.Plots.resize(plotEl);
+          if (!rotationStarted) tryStartRotation();
+        });
+      }
     } else {
       if (homeSearchResults.style.display !== 'none') {
         homeSearchResults.style.display = 'none';
         clearSearch();
         restoreSphere();
       }
-      if (!chatModelChosen && !isMobileDevice && navigator.gpu) {
-        modelPickerEl.style.display = '';
-        document.querySelector('.home-chat-input-area').style.display = 'none';
-      } else {
-        modelPickerEl.style.display = 'none';
-        document.querySelector('.home-chat-input-area').style.display = '';
-        homeChatFooter.style.display = '';
-      }
+      modelPickerEl.style.display = 'none';
+      document.querySelector('.home-chat-input-area').style.display = '';
+      homeChatFooter.style.display = '';
     }
   }
 
@@ -2971,29 +2977,36 @@
     }
   }
 
-  /* --- Mobile-specific wiring --- */
-  if (window.innerWidth <= 800) {
-    switchHomeMode('chat');
-    chatModelChosen = true;
-    // Always start on fresh chat — use history panel to resume past conversations
+  /* --- Unified wiring (mobile-first for all devices) --- */
+  chatModelChosen = true;
+  switchHomeMode(isDesktopWidth ? 'search' : 'chat');
 
-    const mobileReader = document.getElementById('mobile-open-reader');
-    if (mobileReader) {
-      mobileReader.addEventListener('click', () => {
-        openReader(1, []);
-      });
-    }
-
-    document.querySelectorAll('.mobile-chip').forEach(chip => {
-      chip.addEventListener('click', () => {
-        const q = chip.dataset.q;
-        if (!q) return;
-        homeChatInput.value = q;
-        homeChatSendBtn.classList.add('ready');
-        handleHomeSubmit();
-      });
+  const mobileReader = document.getElementById('mobile-open-reader');
+  if (mobileReader) {
+    mobileReader.addEventListener('click', () => {
+      openReader(1, []);
     });
   }
+
+  var actionReader = document.getElementById('home-action-reader');
+  if (actionReader) actionReader.addEventListener('click', () => openReader(1, []));
+  var actionHistory = document.getElementById('home-action-history');
+  if (actionHistory) {
+    actionHistory.addEventListener('click', () => {
+      var panel = document.getElementById('mobile-history-panel');
+      if (panel) panel.classList.toggle('open');
+    });
+  }
+
+  document.querySelectorAll('.mobile-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const q = chip.dataset.q;
+      if (!q) return;
+      homeChatInput.value = q;
+      homeChatSendBtn.classList.add('ready');
+      handleHomeSubmit();
+    });
+  });
 })().catch(function(err) {
   console.error('IIFE crash:', err);
   if (window.innerWidth <= 800) {

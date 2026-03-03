@@ -2,8 +2,8 @@ const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const MODEL = 'openai/gpt-oss-120b';
 
 const ALLOWED_ORIGINS = [
-  'https://gregorykyro.com',
-  'https://gregory-kyro.github.io',
+  'https://bibleverse-ai.com',
+  'https://www.bibleverse-ai.com',
 ];
 
 export default {
