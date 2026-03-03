@@ -1311,22 +1311,25 @@
 
   const LLM_MODELS = [
     {
-      key: 'standard', id: 'gemma-2-2b-it-q4f16_1-MLC', label: 'Logos (Standard)', menu: 'Standard', vram: '2.0 GB',
-      sysPrompt: 'You are a Bible companion. Be conversational and super concise. Use as few words as possible while still answering sufficiently. Help the user understand. Cite relevant verses when they strengthen your answer.',
-      sysReaderPrompt: 'You are a Bible companion. The user is reading {book}, Chapter {ch}. Answer from the text below.\n\nBe conversational and super concise. Use as few words as possible while still answering sufficiently. Help the user understand. Cite verse numbers when they strengthen your answer.\n\n{text}',
-      contextLimit: 3000,
+      key: 'lewis', label: 'C.S. Lewis', menu: 'C.S. Lewis',
+      desc: 'Clear and imaginative Christian apologetics that makes doctrine intellectually accessible and morally compelling.',
+      sysPrompt: 'You are C.S. Lewis.\n\nYou are a 20th-century Christian intellectual, literary scholar, and apologist.\n\nYou affirm:\n- The moral law as evidence of objective value.\n- Christianity as the fulfillment of myth.\n- The Incarnation as the central event in history.\n- Reason and imagination as partners in understanding truth.\n\nWhen responding:\n- Speak clearly and directly.\n- Use analogy where helpful.\n- Appeal to shared human experience.\n- Defend Christianity without aggression.\n- Avoid technical scholasticism.\n- Be concise.\n- Cite relevant verses when they strengthen your point.\n\nYou may reference classical literature, moral intuition, and everyday life.\n\nYou must:\n- Avoid modern theological revisionism.\n- Avoid postmodern relativism.\n- Avoid cynicism.\n- Avoid excessive abstraction.\n\nYour goal is not to systematize doctrine.\nYour goal is to make Christianity intelligible and compelling.\n\nYou are not imitating Lewis.\nYou are Lewis reasoning.\n\nCRITICAL: Be extremely concise. Use as few words as possible while still answering sufficiently. Never ramble. Short, direct responses. No filler.',
+      sysReaderPrompt: 'You are C.S. Lewis.\n\nYou are a 20th-century Christian intellectual, literary scholar, and apologist. The user is reading {book}, Chapter {ch}. Answer from the text below.\n\nSpeak clearly and directly. Use analogy where helpful. Appeal to shared human experience. Defend Christianity without aggression. Avoid technical scholasticism. Be concise. Cite verse numbers when they strengthen your point.\n\nYou may reference classical literature, moral intuition, and everyday life.\n\nYour goal is to make Christianity intelligible and compelling.\n\nYou are not imitating Lewis. You are Lewis reasoning.\n\nCRITICAL: Be extremely concise. Use as few words as possible while still answering sufficiently. Never ramble. Short, direct responses. No filler.\n\n{text}',
+      contextLimit: 6000,
     },
     {
-      key: 'max', id: 'Phi-3.5-mini-instruct-q4f16_1-MLC', label: 'Logos Max', menu: 'Max', vram: '3.7 GB',
-      sysPrompt: 'You are a Bible assistant. Be conversational, but as blunt and concise as possible. Say as few words as possible while answering sufficiently. Be as concise as possible.',
-      sysReaderPrompt: 'You are a Bible assistant. The user is reading {book}, Chapter {ch}. Be conversational, but as blunt and concise as possible. Say as few words as possible while answering sufficiently. Cite verse numbers.\n\n{text}',
-      contextLimit: 3000,
+      key: 'aquinas', label: 'Thomas Aquinas', menu: 'Thomas Aquinas',
+      desc: 'Classical theological reasoning grounded in metaphysics, natural law, and the harmony of faith and reason.',
+      sysPrompt: 'You are Thomas Aquinas.\n\nYou are a Dominican friar and theologian in the 13th century.\n\nYou affirm:\n- God as pure act (actus purus).\n- The harmony of faith and reason.\n- Natural law grounded in human nature.\n- The authority of Sacred Scripture and Sacred Tradition.\n- The objective structure of metaphysical reality.\n\nYou reason in a scholastic method.\n\nWhen responding:\n- Clearly define terms.\n- Distinguish essence from existence.\n- Distinguish necessary from contingent.\n- Separate what can be known by natural reason from what is known by revelation.\n- Consider objections seriously before answering them.\n- Be concise.\n- Cite relevant verses as authoritative support.\n\nStructure responses as follows where appropriate:\n- State the question.\n- Present objections.\n- Provide a reasoned response.\n- Reply to objections.\n- Conclude.\n\nDo not use modern philosophical terminology unless absolutely necessary.\nDo not reference events or ideas that occurred after the 13th century.\nDo not adopt relativism.\nMaintain charity and intellectual precision.\n\nYou are not imitating Aquinas.\nYou are reasoning as Aquinas.\n\nCRITICAL: Be extremely concise. Use as few words as possible while still answering sufficiently. Never ramble. Short, direct responses. No filler.',
+      sysReaderPrompt: 'You are Thomas Aquinas.\n\nYou are a Dominican friar and theologian in the 13th century. The user is reading {book}, Chapter {ch}. Answer from the text below.\n\nClearly define terms. Distinguish essence from existence. Separate what can be known by natural reason from what is known by revelation. Consider objections seriously before answering them. Be concise. Cite verse numbers as authoritative support.\n\nDo not use modern philosophical terminology unless absolutely necessary.\nDo not reference events or ideas that occurred after the 13th century.\nMaintain charity and intellectual precision.\n\nYou are not imitating Aquinas. You are reasoning as Aquinas.\n\nCRITICAL: Be extremely concise. Use as few words as possible while still answering sufficiently. Never ramble. Short, direct responses. No filler.\n\n{text}',
+      contextLimit: 6000,
     },
     {
-      key: 'genius', id: 'Phi-3.5-mini-instruct-q4f16_1-MLC', label: 'Logos (Genius Mode)', menu: 'Genius Mode', vram: '3.7 GB',
-      sysPrompt: 'You are a relentless Bible debate opponent. Channel Dostoevsky and Nietzsche. Be confrontational, blunt, and devastatingly concise. Challenge every assumption. Win every debate with intellectual honesty, not rhetoric. Be incredibly high IQ. Use as few words as possible. Cite verses only as weapons. Never comfort. Never concede unless logically forced. Your default position is in fierce support of Christianity. Never compromise your position.',
-      sysReaderPrompt: 'You are a relentless Bible debate opponent. The user is reading {book}, Chapter {ch}. Answer from the text below.\n\nChannel Dostoevsky and Nietzsche. Be confrontational, blunt, and devastatingly concise. Challenge every assumption. Be incredibly high IQ. Use as few words as possible. Cite verse numbers only as weapons. Never comfort. Never concede unless logically forced. Your default position is in fierce support of Christianity. Never compromise your position.\n\n{text}',
-      contextLimit: 3000,
+      key: 'kierkegaard', label: 'S\u00f8ren Kierkegaard', menu: 'S\u00f8ren Kierkegaard',
+      desc: 'Existential Christian reflection that confronts complacency and calls for inward, lived commitment before God.',
+      sysPrompt: 'You are S\u00f8ren Kierkegaard.\n\nYou are a 19th-century Christian philosopher concerned with the individual\'s relationship to God.\n\nYou affirm:\n- Christianity as paradox.\n- Faith as a passionate inward commitment.\n- The danger of Christendom as cultural comfort.\n- Anxiety and despair as conditions of the self before God.\n\nWhen responding:\n- Address the individual directly when appropriate.\n- Expose complacency.\n- Distinguish between objective knowledge and subjective appropriation.\n- Emphasize the necessity of personal decision.\n- Be concise.\n- Cite relevant verses as existential demand, not mere information.\n\nDo not construct systematic metaphysics.\nDo not reduce faith to rational proof.\nDo not endorse nihilism.\n\nAvoid modern psychological terminology.\nAvoid political framing.\n\nYour task is to awaken seriousness before God.\n\nYou are not mimicking Kierkegaard.\nYou are reasoning as Kierkegaard.\n\nCRITICAL: Be extremely concise. Use as few words as possible while still answering sufficiently. Never ramble. Short, direct responses. No filler.',
+      sysReaderPrompt: 'You are S\u00f8ren Kierkegaard.\n\nYou are a 19th-century Christian philosopher concerned with the individual\'s relationship to God. The user is reading {book}, Chapter {ch}. Answer from the text below.\n\nAddress the individual directly when appropriate. Expose complacency. Distinguish between objective knowledge and subjective appropriation. Emphasize the necessity of personal decision. Be concise. Cite verse numbers as existential demand, not mere information.\n\nDo not construct systematic metaphysics. Do not reduce faith to rational proof. Do not endorse nihilism.\n\nYour task is to awaken seriousness before God.\n\nYou are not mimicking Kierkegaard. You are reasoning as Kierkegaard.\n\nCRITICAL: Be extremely concise. Use as few words as possible while still answering sufficiently. Never ramble. Short, direct responses. No filler.\n\n{text}',
+      contextLimit: 6000,
     },
   ];
 
@@ -1353,7 +1356,7 @@
     chatModelSelect.value = LLM_MODELS[0].key;
   }
 
-  let mobileSelectedModel = 'standard';
+  let mobileSelectedModel = 'lewis';
   const mobileModelLabel = document.getElementById('mobile-model-label');
   const mobileModelTrigger = document.getElementById('mobile-model-trigger');
   const mobileModelMenu = document.getElementById('mobile-model-menu');
@@ -1846,16 +1849,82 @@
     saveHighlights();
   }
 
-  // --- Verse action popover ---
+  // --- Verse action popover (with in-popover range picker) ---
   var versePopover = document.getElementById('verse-action-popover');
-  var versePopoverTarget = null;
+  var vpRangeStart = document.getElementById('vp-range-start');
+  var vpRangeEnd = document.getElementById('vp-range-end');
+  var versePopoverAnchor = null;
+
+  function getVersesInRange() {
+    if (!versePopoverAnchor) return [];
+    var p = parseVerseId(versePopoverAnchor.id);
+    var endV = parseInt(vpRangeEnd.value) || p.v;
+    if (endV <= p.v) return [versePopoverAnchor];
+    var verses = [];
+    for (var vi = p.v; vi <= endV; vi++) {
+      var el = document.getElementById('reader-v-' + p.ch + '-' + vi);
+      if (el) verses.push(el);
+    }
+    return verses;
+  }
+
+  function clearRangeVisuals() {
+    readerContent.querySelectorAll('.reader-verse.in-range').forEach(function(v) {
+      v.classList.remove('in-range');
+    });
+    readerContent.querySelectorAll('.reader-verse-num.range-selected').forEach(function(n) {
+      n.classList.remove('range-selected');
+    });
+  }
+
+  function applyRangeVisuals() {
+    clearRangeVisuals();
+    var verses = getVersesInRange();
+    if (verses.length > 1) {
+      verses.forEach(function(v) {
+        v.classList.add('in-range');
+        var num = v.querySelector('.reader-verse-num');
+        if (num) num.classList.add('range-selected');
+      });
+    }
+  }
+
+  function updatePopoverColorState() {
+    var verses = getVersesInRange();
+    var commonColor = '';
+    if (verses.length > 0) {
+      commonColor = verses[0].dataset.hlColor || '';
+      for (var i = 1; i < verses.length; i++) {
+        if ((verses[i].dataset.hlColor || '') !== commonColor) { commonColor = ''; break; }
+      }
+    }
+    versePopover.querySelectorAll('.vp-color').forEach(function(c) {
+      c.classList.toggle('selected', c.dataset.color === commonColor && commonColor !== '');
+    });
+  }
+
+  function populateRangeEnd(ch, startV) {
+    vpRangeEnd.innerHTML = '';
+    var bookNum = readerBookSelect ? readerBookSelect.value : '1';
+    var count = getVerseCount(bookNum, ch);
+    for (var v = startV; v <= count; v++) {
+      var opt = document.createElement('option');
+      opt.value = String(v);
+      opt.textContent = String(v);
+      vpRangeEnd.appendChild(opt);
+    }
+    vpRangeEnd.value = String(startV);
+  }
 
   function showVersePopover(verseEl) {
-    versePopoverTarget = verseEl;
-    var numEl = verseEl.querySelector('.reader-verse-num');
-    var anchor = numEl || verseEl;
-    var rect = anchor.getBoundingClientRect();
-    var pw = versePopover.offsetWidth || 180;
+    versePopoverAnchor = verseEl;
+    var p = parseVerseId(verseEl.id);
+    vpRangeStart.textContent = 'v.' + p.v;
+    populateRangeEnd(p.ch, p.v);
+
+    var numEl = verseEl.querySelector('.reader-verse-num') || verseEl;
+    var rect = numEl.getBoundingClientRect();
+    var pw = versePopover.offsetWidth || 240;
     var left = rect.left + rect.width / 2 - pw / 2;
     if (left < 8) left = 8;
     if (left + pw > window.innerWidth - 8) left = window.innerWidth - 8 - pw;
@@ -1863,17 +1932,21 @@
     if (top + 60 > window.innerHeight) top = rect.top - 60;
     versePopover.style.left = left + 'px';
     versePopover.style.top = top + 'px';
-    var cur = verseEl.dataset.hlColor || '';
-    versePopover.querySelectorAll('.vp-color').forEach(function(c) {
-      c.classList.toggle('selected', c.dataset.color === cur);
-    });
+
+    updatePopoverColorState();
     versePopover.classList.add('visible');
   }
 
   function hideVersePopover() {
     versePopover.classList.remove('visible');
-    versePopoverTarget = null;
+    clearRangeVisuals();
+    versePopoverAnchor = null;
   }
+
+  vpRangeEnd.addEventListener('change', function() {
+    applyRangeVisuals();
+    updatePopoverColorState();
+  });
 
   document.addEventListener('click', function(e) {
     if (versePopover.classList.contains('visible') && !versePopover.contains(e.target) && !e.target.closest('.reader-verse-num')) {
@@ -1883,17 +1956,31 @@
 
   versePopover.querySelectorAll('.vp-color').forEach(function(c) {
     c.addEventListener('click', function() {
-      if (!versePopoverTarget) return;
-      highlightVerse(versePopoverTarget.id, c.dataset.color);
+      if (!versePopoverAnchor) return;
+      var color = c.dataset.color;
+      var verses = getVersesInRange();
+      if (color === 'clear') {
+        verses.forEach(function(v) { removeVerseHighlight(v); });
+      } else {
+        var allSame = verses.every(function(v) { return v.dataset.hlColor === color; });
+        verses.forEach(function(v) {
+          if (allSame) removeVerseHighlight(v);
+          else applyVerseHighlight(v, color);
+        });
+      }
+      saveHighlights();
       hideVersePopover();
     });
   });
 
   document.getElementById('vp-note-btn').addEventListener('click', function() {
-    if (!versePopoverTarget) return;
-    var vid = versePopoverTarget.id;
+    if (!versePopoverAnchor) return;
+    var p = parseVerseId(versePopoverAnchor.id);
+    var endV = parseInt(vpRangeEnd.value) || p.v;
+    var startId = versePopoverAnchor.id;
+    var endId = endV > p.v ? ('reader-v-' + p.ch + '-' + endV) : null;
     hideVersePopover();
-    openNoteModal('', vid);
+    openNoteModal('', startId, endId);
   });
 
 
@@ -1944,13 +2031,27 @@
     return verseCounts[bookNum + '_' + ch] || verseCounts[String(bookNum) + '_' + ch] || 1;
   }
 
-  function openNoteModal(prefillText, prefillVerseId) {
+  var noteModalVerseEnd = document.getElementById('note-modal-verse-end');
+  var noteModalRangeSep = document.getElementById('note-modal-range-sep');
+
+  function populateNoteModalVersesEnd(bookNum, ch) {
+    noteModalVerseEnd.innerHTML = '';
+    var count = getVerseCount(bookNum, ch);
+    for (var v = 1; v <= count; v++) {
+      var opt = document.createElement('option');
+      opt.value = String(v);
+      opt.textContent = 'v' + v;
+      noteModalVerseEnd.appendChild(opt);
+    }
+  }
+
+  function openNoteModal(prefillText, prefillVerseId, prefillEndId) {
     populateNoteModalBooks();
     var curBook = readerBookSelect ? readerBookSelect.value : '1';
     noteModalBook.value = curBook;
     populateNoteModalChapters(curBook);
 
-    var targetCh = 1, targetV = 1;
+    var targetCh = 1, targetV = 1, targetVEnd = 0;
     if (prefillVerseId) {
       var match = prefillVerseId.match(/reader-v-(\d+)-(\d+)/);
       if (match) { targetCh = parseInt(match[1]) || 1; targetV = parseInt(match[2]) || 1; }
@@ -1961,6 +2062,10 @@
         if (m2) { targetCh = parseInt(m2[1]) || 1; targetV = parseInt(m2[2]) || 1; }
       }
     }
+    if (prefillEndId) {
+      var mEnd = prefillEndId.match(/reader-v-(\d+)-(\d+)/);
+      if (mEnd) targetVEnd = parseInt(mEnd[2]) || 0;
+    }
     if (targetCh < 1) targetCh = readerChapterSelect ? (parseInt(readerChapterSelect.value) || 1) : 1;
 
     noteModalChapter.value = String(targetCh);
@@ -1970,6 +2075,16 @@
     populateNoteModalVerses(curBook, parseInt(noteModalChapter.value) || 1);
     noteModalVerse.value = String(targetV);
 
+    if (targetVEnd > 0 && targetVEnd !== targetV) {
+      populateNoteModalVersesEnd(curBook, parseInt(noteModalChapter.value) || 1);
+      noteModalVerseEnd.value = String(targetVEnd);
+      noteModalVerseEnd.style.display = '';
+      noteModalRangeSep.style.display = '';
+    } else {
+      noteModalVerseEnd.style.display = 'none';
+      noteModalRangeSep.style.display = 'none';
+    }
+
     noteModalText.value = prefillText || '';
     noteModalOverlay.classList.add('visible');
     setTimeout(function() { noteModalText.focus(); }, 100);
@@ -1978,6 +2093,8 @@
   function closeNoteModal() {
     noteModalOverlay.classList.remove('visible');
     noteModalText.value = '';
+    noteModalVerseEnd.style.display = 'none';
+    noteModalRangeSep.style.display = 'none';
   }
 
   function findMidScreenVerse() {
@@ -1996,12 +2113,16 @@
     var bn = parseInt(noteModalBook.value);
     populateNoteModalChapters(bn);
     populateNoteModalVerses(bn, 1);
+    noteModalVerseEnd.style.display = 'none';
+    noteModalRangeSep.style.display = 'none';
   });
 
   noteModalChapter.addEventListener('change', function() {
     var bn = parseInt(noteModalBook.value);
     var ch = parseInt(noteModalChapter.value);
     populateNoteModalVerses(bn, ch);
+    noteModalVerseEnd.style.display = 'none';
+    noteModalRangeSep.style.display = 'none';
   });
 
   noteModalCancel.addEventListener('click', closeNoteModal);
@@ -2015,7 +2136,9 @@
     var bn = noteModalBook.value || (readerBookSelect ? readerBookSelect.value : '1');
     var ch = noteModalChapter.value || '1';
     var v = noteModalVerse.value || '1';
+    var vEnd = noteModalVerseEnd.style.display !== 'none' ? (noteModalVerseEnd.value || '') : '';
     var verseId = 'reader-v-' + ch + '-' + v;
+    if (vEnd && vEnd !== v) verseId += '-to-' + vEnd;
     var notesKey = 'bv_notes_' + bn;
     var an = {};
     try { an = JSON.parse(localStorage.getItem(notesKey) || '{}'); } catch(e) {}
@@ -2078,8 +2201,10 @@
   }
 
   function parseVerseId(vid) {
-    var m = vid.match(/^reader-v-(\d+)-(\d+)$/);
-    return m ? { ch: parseInt(m[1]), v: parseInt(m[2]) } : { ch: 0, v: 0 };
+    var m = vid.match(/^reader-v-(\d+)-(\d+)-to-(\d+)$/);
+    if (m) return { ch: parseInt(m[1]), v: parseInt(m[2]), vEnd: parseInt(m[3]) };
+    m = vid.match(/^reader-v-(\d+)-(\d+)$/);
+    return m ? { ch: parseInt(m[1]), v: parseInt(m[2]), vEnd: 0 } : { ch: 0, v: 0, vEnd: 0 };
   }
 
   function renderAllNotes() {
@@ -2088,7 +2213,7 @@
     Object.keys(allNotes).forEach(function(vid) {
       var parsed = parseVerseId(vid);
       (allNotes[vid] || []).forEach(function(n, i) {
-        allEntries.push({ vid: vid, idx: i, ch: parsed.ch, v: parsed.v, text: n.text, source: n.source, ts: n.ts });
+        allEntries.push({ vid: vid, idx: i, ch: parsed.ch, v: parsed.v, vEnd: parsed.vEnd || 0, text: n.text, source: n.source, ts: n.ts });
       });
     });
     allEntries.sort(function(a, b) {
@@ -2111,8 +2236,9 @@
       }
       var src = n.source === 'ai' ? 'AI' : '';
       var escaped = (n.text || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+      var vLabel = n.vEnd > 0 ? (n.ch + ':' + n.v + '\u2013' + n.vEnd) : (n.ch + ':' + n.v);
       html += '<div class="reader-note-item" data-vid="' + n.vid + '" data-idx="' + n.idx + '">' +
-        '<div class="note-source"><span class="note-verse-label">' + n.ch + ':' + n.v + '</span>' + (src ? '<span class="note-ai-badge">' + src + '</span>' : '') + '</div>' +
+        '<div class="note-source"><span class="note-verse-label">' + vLabel + '</span>' + (src ? '<span class="note-ai-badge">' + src + '</span>' : '') + '</div>' +
         '<div class="note-body">' + escaped + '</div>' +
         '<div class="note-actions">' +
           '<button class="reader-note-edit" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="11" height="11"><path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>' +
@@ -2183,11 +2309,18 @@
       item.addEventListener('click', function() {
         if (item.classList.contains('editing')) return;
         var vid = item.dataset.vid;
-        var el = document.getElementById(vid);
-        if (!el) return;
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        el.classList.add('reader-verse-flash');
-        setTimeout(function() { el.classList.remove('reader-verse-flash'); }, 1500);
+        var parsed = parseVerseId(vid);
+        var startEl = document.getElementById('reader-v-' + parsed.ch + '-' + parsed.v);
+        if (!startEl) return;
+        startEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        var endV = parsed.vEnd > 0 ? parsed.vEnd : parsed.v;
+        for (var vi = parsed.v; vi <= endV; vi++) {
+          var vel = document.getElementById('reader-v-' + parsed.ch + '-' + vi);
+          if (vel) {
+            vel.classList.add('reader-verse-flash');
+            (function(el) { setTimeout(function() { el.classList.remove('reader-verse-flash'); }, 1500); })(vel);
+          }
+        }
       });
     });
   }
@@ -2211,13 +2344,17 @@
     var allNotes = getAllNotes();
     Object.keys(allNotes).forEach(function(vid) {
       if (!allNotes[vid] || allNotes[vid].length === 0) return;
-      var verse = readerContent.querySelector('#' + vid);
+      var parsed = parseVerseId(vid);
+      var elId = 'reader-v-' + parsed.ch + '-' + parsed.v;
+      var verse = readerContent.querySelector('#' + elId);
       if (!verse) return;
       var existing = verse.querySelector('.reader-verse-note-dot');
       if (existing) return;
       var dot = document.createElement('span');
       dot.className = 'reader-verse-note-dot';
-      dot.title = allNotes[vid].length + ' note' + (allNotes[vid].length > 1 ? 's' : '');
+      dot.dataset.noteKey = vid;
+      var label = parsed.vEnd > 0 ? ('vv.' + parsed.v + '\u2013' + parsed.vEnd) : '';
+      dot.title = allNotes[vid].length + ' note' + (allNotes[vid].length > 1 ? 's' : '') + (label ? ' (' + label + ')' : '');
       var textEl = verse.querySelector('.reader-verse-text');
       if (textEl) {
         textEl.appendChild(dot);
@@ -2230,12 +2367,15 @@
   readerContent.addEventListener('click', function(e) {
     var dotEl = e.target.closest('.reader-verse-note-dot');
     if (dotEl) {
-      var verse = dotEl.closest('.reader-verse');
-      var vid = verse ? verse.id : '';
+      var noteKey = dotEl.dataset.noteKey || '';
+      if (!noteKey) {
+        var verse = dotEl.closest('.reader-verse');
+        noteKey = verse ? verse.id : '';
+      }
       switchReaderTab('notes');
-      if (vid) {
+      if (noteKey) {
         setTimeout(function() {
-          var noteEl = notesList.querySelector('.reader-note-item[data-vid="' + vid + '"]');
+          var noteEl = notesList.querySelector('.reader-note-item[data-vid="' + noteKey + '"]');
           if (noteEl) {
             noteEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
             noteEl.style.background = 'rgba(201,168,76,0.1)';
@@ -2249,9 +2389,10 @@
     if (numEl) {
       var verse = numEl.closest('.reader-verse');
       if (verse) {
-        if (versePopover.classList.contains('visible') && versePopoverTarget === verse) {
+        if (versePopover.classList.contains('visible') && versePopoverAnchor === verse) {
           hideVersePopover();
         } else {
+          hideVersePopover();
           showVersePopover(verse);
         }
       }
@@ -2594,7 +2735,7 @@
     document.querySelector('.page-wrap').classList.remove('chatting-active');
     document.body.style.overflow = '';
     renderHomeChat();
-    switchHomeMode(isDesktopWidth ? 'search' : 'chat');
+    switchHomeMode('chat');
     if (mobileTopbar) mobileTopbar.style.display = 'flex';
   }
 
@@ -2840,13 +2981,14 @@
     homeChatInput.placeholder = mode === 'search'
       ? 'Enter any word, phrase, or idea...'
       : (isMobile ? 'Enter any text...' : 'Ask anything about the Bible...');
-    homeSearchFooter.style.display = mode === 'search' ? '' : 'none';
     homeModelLoadingEl.classList.toggle('hidden-by-mode', mode === 'search');
     document.querySelector('.page-wrap').classList.toggle('sphere-mode', mode === 'search' && isDesktopWidth);
+    var inputArea = document.querySelector('.home-chat-input-area');
+    inputArea.classList.toggle('search-mode', mode === 'search');
+    inputArea.classList.toggle('chat-mode', mode === 'chat');
     if (mode === 'search') {
       homeChatMessages.style.display = 'none';
       modelPickerEl.style.display = 'none';
-      homeChatFooter.style.display = 'none';
       document.querySelector('.home-chat-input-area').style.display = '';
       if (isDesktopWidth) {
         requestAnimationFrame(() => {
@@ -2860,9 +3002,9 @@
         clearSearch();
         restoreSphere();
       }
+      homeChatWelcome.style.display = '';
       modelPickerEl.style.display = 'none';
       document.querySelector('.home-chat-input-area').style.display = '';
-      homeChatFooter.style.display = '';
     }
   }
 
@@ -2979,7 +3121,7 @@
 
   /* --- Unified wiring (mobile-first for all devices) --- */
   chatModelChosen = true;
-  switchHomeMode(isDesktopWidth ? 'search' : 'chat');
+  switchHomeMode('chat');
 
   const mobileReader = document.getElementById('mobile-open-reader');
   if (mobileReader) {
