@@ -1967,9 +1967,17 @@
       font-size: 0.85rem;
       font-weight: 600;
       color: rgba(232,228,220,0.85);
-      margin: 0 0 16px;
+      margin: 0 0 4px;
       letter-spacing: 0.01em;
     }
+    .note-modal-ref {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      color: rgba(201,168,76,0.55);
+      letter-spacing: 0.02em;
+      margin: 0 0 14px;
+    }
+    .note-modal-ref:empty { display: none; margin: 0; }
     .note-modal-row {
       display: flex;
       gap: 8px;
@@ -4548,7 +4556,8 @@
 
     /* === Mobile: hide search-specific sub-elements === */
     @media (max-width: 800px) {
-      .home-chat-input-footer { display: none !important; }
+      .home-chat-input-footer,
+      .home-chat.chatting .home-chat-input-footer { display: none !important; }
       .home-search-mode-toggle { display: none !important; }
       .search-filter-btn { display: none !important; }
       .stats-info-btn { display: none !important; }
@@ -5396,7 +5405,7 @@ document.getElementById('chat-methodology-overlay').addEventListener('click', fu
           <input type="password" id="reader-chat-api-key" placeholder="sk-...">
           <button id="reader-chat-key-save">Save</button>
         </div>
-        <div class="reader-chat-settings-hint">Without a key, AI runs locally in your browser via WebGPU.</div>
+        <div class="reader-chat-settings-hint">All voices are based on GPT-oss 120B. Inference is routed through a private server.</div>
       </div>
       <div class="reader-model-picker" id="reader-model-picker">
         <div class="rmp-label">Choose your voice</div>
@@ -5424,7 +5433,7 @@ document.getElementById('chat-methodology-overlay').addEventListener('click', fu
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
         </button>
       </div>
-      <div class="reader-chat-disclaimer" id="reader-chat-disclaimer" style="display:none;">AI runs locally in your browser. Your messages stay on your device.</div>
+      <div class="reader-chat-disclaimer" id="reader-chat-disclaimer" style="display:none;">All inference is routed through a private server. No data is stored or logged.</div>
       <!-- Notes view (toggled with AI) -->
       <div class="reader-notes-view" id="reader-notes-view" style="display:none;">
         <div class="reader-notes-list" id="reader-notes-list"></div>
@@ -5448,6 +5457,7 @@ document.getElementById('chat-methodology-overlay').addEventListener('click', fu
 <div class="note-modal-overlay" id="note-modal-overlay">
   <div class="note-modal">
     <h3>Add Note</h3>
+    <div class="note-modal-ref" id="note-modal-ref"></div>
     <div class="note-modal-row">
       <select class="note-modal-select" id="note-modal-book"></select>
       <select class="note-modal-select" id="note-modal-chapter" style="max-width:100px;"></select>
@@ -5668,6 +5678,6 @@ document.getElementById('chat-methodology-overlay').addEventListener('click', fu
 </script>
 
 <script src="js/common.js"></script>
-<script src="js/hero.js?v=20260302z18"></script>
+<script src="js/hero.js?v=20260302z20"></script>
 </body>
 </html>

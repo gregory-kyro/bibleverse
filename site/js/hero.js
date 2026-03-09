@@ -2045,6 +2045,18 @@
     }
   }
 
+  var noteModalRef = document.getElementById('note-modal-ref');
+
+  function updateNoteModalRef() {
+    var bName = noteModalBook.options[noteModalBook.selectedIndex] ? noteModalBook.options[noteModalBook.selectedIndex].textContent : '';
+    var ch = noteModalChapter.value || '1';
+    var v = noteModalVerse.value || '1';
+    var vEnd = (noteModalVerseEnd.style.display !== 'none') ? noteModalVerseEnd.value : '';
+    var ref = bName + ' ' + ch + ':' + v;
+    if (vEnd && vEnd !== v) ref += '\u2013' + vEnd;
+    noteModalRef.textContent = ref;
+  }
+
   function openNoteModal(prefillText, prefillVerseId, prefillEndId) {
     populateNoteModalBooks();
     var curBook = readerBookSelect ? readerBookSelect.value : '1';
@@ -2085,6 +2097,7 @@
       noteModalRangeSep.style.display = 'none';
     }
 
+    updateNoteModalRef();
     noteModalText.value = prefillText || '';
     noteModalOverlay.classList.add('visible');
     setTimeout(function() { noteModalText.focus(); }, 100);
@@ -2115,6 +2128,7 @@
     populateNoteModalVerses(bn, 1);
     noteModalVerseEnd.style.display = 'none';
     noteModalRangeSep.style.display = 'none';
+    updateNoteModalRef();
   });
 
   noteModalChapter.addEventListener('change', function() {
@@ -2123,7 +2137,11 @@
     populateNoteModalVerses(bn, ch);
     noteModalVerseEnd.style.display = 'none';
     noteModalRangeSep.style.display = 'none';
+    updateNoteModalRef();
   });
+
+  noteModalVerse.addEventListener('change', updateNoteModalRef);
+  noteModalVerseEnd.addEventListener('change', updateNoteModalRef);
 
   noteModalCancel.addEventListener('click', closeNoteModal);
   noteModalOverlay.addEventListener('click', function(e) {
@@ -2223,7 +2241,7 @@
     });
 
     if (allEntries.length === 0) {
-      notesList.innerHTML = '<div class="reader-notes-empty">No notes yet.<br>Use the Add Note button or tap a verse number.</div>';
+      notesList.innerHTML = '<div class="reader-notes-empty">No notes yet.<br>Tap a verse number to highlight or add a note.<br>Use the range picker to select multiple verses.</div>';
       return;
     }
 
